@@ -1,4 +1,4 @@
-### Hack IITK 2024-2025# Threat Intelligence Extractor
+### Hack IITK 2024-2025
 
 # Threat Intelligence Extractor
 
