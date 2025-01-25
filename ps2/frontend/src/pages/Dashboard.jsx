@@ -241,67 +241,119 @@ export default function Dashboard() {
         ? web3.utils.toWei(formData.amount.toString(), 'ether')
         : formData.tokenId;
 
+      console.log('Amount in wei:', amount);
+
+      // Check token approval first
+      if (formData.type === 'erc20') {
+        const tokenContract = new web3.eth.Contract(
+          [
+            {
+              "constant": true,
+              "inputs": [
+                {"name": "owner", "type": "address"},
+                {"name": "spender", "type": "address"}
+              ],
+              "name": "allowance",
+              "outputs": [{"name": "", "type": "uint256"}],
+              "type": "function"
+            },
+            {
+              "constant": true,
+              "inputs": [{"name": "account", "type": "address"}],
+              "name": "balanceOf",
+              "outputs": [{"name": "", "type": "uint256"}],
+              "type": "function"
+            }
+          ],
+          formData.tokenAddress
+        );
+
+        const balance = await tokenContract.methods.balanceOf(account).call();
+        console.log('Token balance:', balance);
+        
+        if (web3.utils.toBN(balance).lt(web3.utils.toBN(amount))) {
+          throw new Error('Insufficient token balance');
+        }
+
+        const allowance = await tokenContract.methods
+          .allowance(account, forwarder._address)
+          .call();
+        console.log('Current allowance:', allowance);
+
+        if (web3.utils.toBN(allowance).lt(web3.utils.toBN(amount))) {
+          throw new Error('Please approve the Forwarder contract first');
+        }
+      }
+
       // Get the nonce for the current user
       const nonce = await forwarder.methods.getNonce(account).call();
       console.log('Current nonce:', nonce);
       
+      // Create the forward request data
+      const data = formData.type === 'erc20' 
+        ? web3.eth.abi.encodeFunctionCall({
+            name: 'transferFrom',
+            type: 'function',
+            inputs: [{
+              type: 'address',
+              name: 'from'
+            }, {
+              type: 'address',
+              name: 'to'
+            }, {
+              type: 'uint256',
+              name: 'amount'
+            }]
+          }, [account, formData.recipient, amount])
+        : web3.eth.abi.encodeFunctionCall({
+            name: 'transferFrom',
+            type: 'function',
+            inputs: [{
+              type: 'address',
+              name: 'from'
+            }, {
+              type: 'address',
+              name: 'to'
+            }, {
+              type: 'uint256',
+              name: 'tokenId'
+            }]
+          }, [account, formData.recipient, formData.tokenId]);
+
       // Prepare the forward request
       const forwardRequest = {
         from: account,
         to: formData.tokenAddress,
         value: '0',
-        gas: '200000', // Increased gas limit
-        nonce: nonce,
-        data: formData.type === 'erc20' 
-          ? web3.eth.abi.encodeFunctionCall({
-              name: 'transferFrom',
-              type: 'function',
-              inputs: [{
-                type: 'address',
-                name: 'from'
-              }, {
-                type: 'address',
-                name: 'to'
-              }, {
-                type: 'uint256',
-                name: 'amount'
-              }]
-            }, [account, formData.recipient, amount])
-          : web3.eth.abi.encodeFunctionCall({
-              name: 'transferFrom',
-              type: 'function',
-              inputs: [{
-                type: 'address',
-                name: 'from'
-              }, {
-                type: 'address',
-                name: 'to'
-              }, {
-                type: 'uint256',
-                name: 'tokenId'
-              }]
-            }, [account, formData.recipient, formData.tokenId]),
+        gas: '200000',
+        nonce: nonce.toString(),
+        data: data,
         validUntil: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
       };
 
       console.log('Forward request:', forwardRequest);
 
       // Create the message to sign
-      const message = web3.utils.soliditySha3(
-        forwardRequest.from,
-        forwardRequest.to,
-        forwardRequest.value,
-        forwardRequest.gas,
-        forwardRequest.nonce,
-        forwardRequest.data,
-        forwardRequest.validUntil
+      const messageHash = web3.utils.soliditySha3(
+        { t: 'address', v: forwardRequest.from },
+        { t: 'address', v: forwardRequest.to },
+        { t: 'uint256', v: forwardRequest.value },
+        { t: 'uint256', v: forwardRequest.gas },
+        { t: 'uint256', v: forwardRequest.nonce },
+        { t: 'bytes', v: forwardRequest.data },
+        { t: 'uint256', v: forwardRequest.validUntil }
       );
 
-      console.log('Message to sign:', message);
+      const signatureMessage = web3.utils.soliditySha3(
+        "\x19Ethereum Signed Message:\n32",
+        messageHash
+      );
+
+      console.log('Message to sign:', signatureMessage);
 
       // Sign the message
       const signature = await web3.eth.personal.sign(
-        message,
+        signatureMessage,
         account,
         '' // password is empty for MetaMask
       );
@@ -325,9 +377,12 @@ export default function Dashboard() {
             signature
           );
 
+      const gasEstimate = await method.estimateGas({ from: account });
+      console.log('Gas estimate:', gasEstimate);
+
       const tx = await method.send({
         from: account,
-        gas: 300000, // Increased gas limit
+        gas: Math.floor(gasEstimate * 1.2), // Add 20% buffer
       });
 
       console.log('Transaction successful:', tx);
@@ -347,7 +402,7 @@ export default function Dashboard() {
       console.error('Transaction submission failed:', error);
       setStatus({
         type: 'error',
-        message: error.message,
+        message: error.message || 'Transaction failed. Please check the console for details.',
       });
     } finally {
       setLoading(false);
@@ -440,6 +495,17 @@ export default function Dashboard() {
                     </Typography>
                   )}
                   <Grid item xs={12}>
+                    {formData.type === 'erc20' && (
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        onClick={approveForwarder}
+                        disabled={loading || !account}
+                        sx={{ mt: 2, mb: 2 }}
+                      >
+                        Approve Token Spending
+                      </Button>
+                    )}
                     <Button
                       variant="contained"
                       color="primary"
