@@ -36,7 +36,9 @@ export default function Dashboard() {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
+    console.log('Validating form data:', formData);
+
     if (!isAddress(formData.tokenAddress)) {
       newErrors.tokenAddress = 'Invalid token address';
     }
@@ -50,6 +52,8 @@ export default function Dashboard() {
       newErrors.tokenId = 'Invalid token ID';
     }
 
+    console.log('Validation errors:', newErrors);
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -58,49 +62,171 @@ export default function Dashboard() {
     if (!validateForm()) return;
 
     try {
-      const data = formData.type === 'erc20' 
+      console.log('Estimating gas...');
+      
+      // Convert amount to wei if it's an ERC20 transfer
+      const amount = formData.type === 'erc20' 
+        ? web3.utils.toWei(formData.amount.toString(), 'ether')
+        : formData.tokenId;
+
+      console.log('Amount in wei:', amount);
+
+      // First, check if the token contract has approved the forwarder
+      if (formData.type === 'erc20') {
+        const tokenContract = new web3.eth.Contract(
+          [
+            {
+              "constant": true,
+              "inputs": [
+                {
+                  "name": "owner",
+                  "type": "address"
+                },
+                {
+                  "name": "spender",
+                  "type": "address"
+                }
+              ],
+              "name": "allowance",
+              "outputs": [{"name": "", "type": "uint256"}],
+              "type": "function"
+            },
+            {
+              "constant": true,
+              "inputs": [{"name": "account", "type": "address"}],
+              "name": "balanceOf",
+              "outputs": [{"name": "", "type": "uint256"}],
+              "type": "function"
+            }
+          ],
+          formData.tokenAddress
+        );
+
+        // Check balance
+        const balance = await tokenContract.methods.balanceOf(account).call();
+        console.log('Token balance:', balance);
+        if (web3.utils.toBN(balance).lt(web3.utils.toBN(amount))) {
+          throw new Error('Insufficient token balance');
+        }
+
+        // Check allowance
+        const allowance = await tokenContract.methods
+          .allowance(account, forwarder._address)
+          .call();
+        console.log('Current allowance:', allowance);
+
+        if (web3.utils.toBN(allowance).lt(web3.utils.toBN(amount))) {
+          throw new Error('Please approve the Forwarder contract first');
+        }
+      }
+
+      // Create dummy signature for estimation
+      const dummySignature = '0x' + '00'.repeat(65);
+
+      console.log('Estimating gas for transfer with params:', {
+        tokenAddress: formData.tokenAddress,
+        from: account,
+        to: formData.recipient,
+        amount: amount,
+        signature: dummySignature
+      });
+
+      // Estimate gas for the appropriate method
+      const method = formData.type === 'erc20'
         ? forwarder.methods.forwardERC20Transfer(
             formData.tokenAddress,
             account,
             formData.recipient,
-            formData.amount
-          ).encodeABI()
+            amount,
+            dummySignature
+          )
         : forwarder.methods.forwardERC721Transfer(
             formData.tokenAddress,
             account,
             formData.recipient,
-            formData.tokenId
-          ).encodeABI();
+            formData.tokenId,
+            dummySignature
+          );
 
-      const gasEstimate = await web3.eth.estimateGas({
+      const gasEstimate = await method.estimateGas({
         from: account,
-        to: forwarder._address,
-        data
       });
 
       const gasPrice = await web3.eth.getGasPrice();
       const estimatedCost = web3.utils.fromWei(
-        (gasEstimate * gasPrice).toString(),
+        (BigInt(gasEstimate) * BigInt(gasPrice)).toString(),
         'ether'
       );
 
       setGasEstimate({
         gas: gasEstimate,
-        cost: estimatedCost
+        cost: estimatedCost,
       });
+
+      console.log('Gas estimation successful:', {
+        gasEstimate,
+        estimatedCost
+      });
+
     } catch (error) {
+      console.error('Gas estimation failed:', error);
       setStatus({
         type: 'error',
-        message: `Gas estimation failed: ${error.message}`
+        message: error.message || 'Gas estimation failed. Make sure you have approved the Forwarder contract.',
       });
     }
   };
 
-  useEffect(() => {
-    if (formData.tokenAddress && formData.recipient) {
-      estimateGas();
+  const approveForwarder = async () => {
+    try {
+      setStatus({
+        type: 'info',
+        message: 'Approving Forwarder contract...',
+      });
+
+      const tokenContract = new web3.eth.Contract(
+        [
+          {
+            "constant": false,
+            "inputs": [
+              {
+                "name": "spender",
+                "type": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256"
+              }
+            ],
+            "name": "approve",
+            "outputs": [{"name": "", "type": "bool"}],
+            "type": "function"
+          }
+        ],
+        formData.tokenAddress
+      );
+
+      const maxUint256 = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
+      console.log('Approving forwarder address:', forwarder._address);
+      
+      const tx = await tokenContract.methods
+        .approve(forwarder._address, maxUint256)
+        .send({ from: account });
+
+      console.log('Approval transaction:', tx);
+
+      setStatus({
+        type: 'success',
+        message: 'Forwarder contract approved successfully!',
+      });
+    } catch (error) {
+      console.error('Approval failed:', error);
+      setStatus({
+        type: 'error',
+        message: 'Failed to approve Forwarder contract: ' + error.message,
+      });
     }
-  }, [formData]);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -108,25 +234,107 @@ export default function Dashboard() {
 
     setLoading(true);
     try {
+      console.log('Preparing transaction with form data:', formData);
+
+      // Convert amount to wei if it's an ERC20 transfer
+      const amount = formData.type === 'erc20' 
+        ? web3.utils.toWei(formData.amount.toString(), 'ether')
+        : formData.tokenId;
+
+      // Get the nonce for the current user
+      const nonce = await forwarder.methods.getNonce(account).call();
+      console.log('Current nonce:', nonce);
+      
+      // Prepare the forward request
+      const forwardRequest = {
+        from: account,
+        to: formData.tokenAddress,
+        value: '0',
+        gas: '200000', // Increased gas limit
+        nonce: nonce,
+        data: formData.type === 'erc20' 
+          ? web3.eth.abi.encodeFunctionCall({
+              name: 'transferFrom',
+              type: 'function',
+              inputs: [{
+                type: 'address',
+                name: 'from'
+              }, {
+                type: 'address',
+                name: 'to'
+              }, {
+                type: 'uint256',
+                name: 'amount'
+              }]
+            }, [account, formData.recipient, amount])
+          : web3.eth.abi.encodeFunctionCall({
+              name: 'transferFrom',
+              type: 'function',
+              inputs: [{
+                type: 'address',
+                name: 'from'
+              }, {
+                type: 'address',
+                name: 'to'
+              }, {
+                type: 'uint256',
+                name: 'tokenId'
+              }]
+            }, [account, formData.recipient, formData.tokenId]),
+        validUntil: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+      };
+
+      console.log('Forward request:', forwardRequest);
+
+      // Create the message to sign
+      const message = web3.utils.soliditySha3(
+        forwardRequest.from,
+        forwardRequest.to,
+        forwardRequest.value,
+        forwardRequest.gas,
+        forwardRequest.nonce,
+        forwardRequest.data,
+        forwardRequest.validUntil
+      );
+
+      console.log('Message to sign:', message);
+
+      // Sign the message
+      const signature = await web3.eth.personal.sign(
+        message,
+        account,
+        '' // password is empty for MetaMask
+      );
+
+      console.log('Signature:', signature);
+
+      // Execute the forward request
       const method = formData.type === 'erc20'
         ? forwarder.methods.forwardERC20Transfer(
             formData.tokenAddress,
             account,
             formData.recipient,
-            formData.amount
+            amount,
+            signature
           )
         : forwarder.methods.forwardERC721Transfer(
             formData.tokenAddress,
             account,
             formData.recipient,
-            formData.tokenId
+            formData.tokenId,
+            signature
           );
 
-      await method.send({ from: account });
+      const tx = await method.send({
+        from: account,
+        gas: 300000, // Increased gas limit
+      });
+
+      console.log('Transaction successful:', tx);
 
       setStatus({
         type: 'success',
-        message: 'Transaction submitted successfully!'
+        message: 'Transaction submitted successfully!',
       });
       setFormData({
         type: 'erc20',
@@ -136,16 +344,25 @@ export default function Dashboard() {
         tokenId: '',
       });
     } catch (error) {
+      console.error('Transaction submission failed:', error);
       setStatus({
         type: 'error',
-        message: error.message
+        message: error.message,
       });
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (formData.tokenAddress && formData.recipient) {
+      console.log('Form data updated, re-estimating gas...');
+      estimateGas();
+    }
+  }, [formData]);
+
   if (web3Loading) {
+    console.log('Web3 is loading...');
     return <CircularProgress />;
   }
 
@@ -250,4 +467,4 @@ export default function Dashboard() {
       </Grid>
     </Box>
   );
-} 
+}

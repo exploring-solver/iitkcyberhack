@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract Forwarder is Ownable, ReentrancyGuard {
     using ECDSA for bytes32;
+    using MessageHashUtils for bytes32;
 
     struct ForwardRequest {
         address from;
@@ -21,63 +22,86 @@ contract Forwarder is Ownable, ReentrancyGuard {
         uint256 validUntil;
     }
 
-    mapping(address => uint256) public nonces;
-    mapping(bytes32 => bool) public executed;
+    mapping(address => uint256) private _nonces;
+    mapping(bytes32 => bool) private _executed;
 
     event TransactionForwarded(
         address indexed from,
         address indexed to,
         uint256 value,
-        bytes data
+        bytes data,
+        bool success
     );
 
     constructor() Ownable(msg.sender) {}
 
     function getNonce(address from) public view returns (uint256) {
-        return nonces[from];
-    }
-
-    function execute(
-        ForwardRequest memory req,
-        bytes calldata signature
-    ) public payable nonReentrant returns (bool, bytes memory) {
-        require(block.timestamp <= req.validUntil, "Request expired");
-        require(nonces[req.from] == req.nonce, "Invalid nonce");
-        require(verify(req, signature), "Invalid signature");
-
-        nonces[req.from]++;
-        bytes32 hash = keccak256(abi.encode(req, signature));
-        require(!executed[hash], "Request already executed");
-        executed[hash] = true;
-
-        (bool success, bytes memory returndata) = req.to.call{
-            gas: req.gas,
-            value: req.value
-        }(req.data);
-        require(success, "Forward request failed");
-
-        emit TransactionForwarded(req.from, req.to, req.value, req.data);
-        return (success, returndata);
+        return _nonces[from];
     }
 
     function verify(
         ForwardRequest memory req,
         bytes calldata signature
-    ) public view returns (bool) {
+    ) public pure returns (bool) {
         bytes32 digest = keccak256(
             abi.encodePacked(
-                req.from,
-                req.to,
-                req.value,
-                req.gas,
-                req.nonce,
-                req.data,
-                req.validUntil
+                "\x19Ethereum Signed Message:\n32",
+                keccak256(
+                    abi.encode(
+                        req.from,
+                        req.to,
+                        req.value,
+                        req.gas,
+                        req.nonce,
+                        req.data,
+                        req.validUntil
+                    )
+                )
             )
         );
-        bytes32 hash = MessageHashUtils.toEthSignedMessageHash(digest);
-        address signer = ECDSA.recover(hash, signature);
+        address signer = ECDSA.recover(digest, signature);
         return signer == req.from;
+    }
+
+    function execute(
+        ForwardRequest memory req, // Changed from calldata to memory
+        bytes calldata signature
+    ) public payable nonReentrant returns (bool, bytes memory) {
+        require(block.timestamp <= req.validUntil, "Request expired");
+        require(_nonces[req.from] == req.nonce, "Invalid nonce");
+        require(verify(req, signature), "Invalid signature");
+
+        _nonces[req.from]++;
+        bytes32 hash = keccak256(abi.encode(req, signature));
+        require(!_executed[hash], "Request already executed");
+        _executed[hash] = true;
+
+        (bool success, bytes memory returndata) = req.to.call{
+            gas: req.gas,
+            value: req.value
+        }(req.data);
+
+        emit TransactionForwarded(
+            req.from,
+            req.to,
+            req.value,
+            req.data,
+            success
+        );
+
+        if (!success) {
+            // If the call failed, bubble up the revert reason
+            if (returndata.length > 0) {
+                assembly {
+                    let returndata_size := mload(returndata)
+                    revert(add(32, returndata), returndata_size)
+                }
+            } else {
+                revert("Forward request failed");
+            }
+        }
+
+        return (success, returndata);
     }
 
     function forwardERC20Transfer(
@@ -86,7 +110,7 @@ contract Forwarder is Ownable, ReentrancyGuard {
         address to,
         uint256 amount,
         bytes calldata signature
-    ) external nonReentrant {
+    ) external nonReentrant returns (bool) {
         bytes memory data = abi.encodeWithSelector(
             IERC20.transferFrom.selector,
             from,
@@ -99,13 +123,14 @@ contract Forwarder is Ownable, ReentrancyGuard {
             to: token,
             value: 0,
             gas: 100000,
-            nonce: nonces[from],
+            nonce: _nonces[from],
             data: data,
             validUntil: block.timestamp + 3600
         });
 
         (bool success, ) = execute(req, signature);
         require(success, "ERC20 forward failed");
+        return success;
     }
 
     function forwardERC721Transfer(
@@ -114,7 +139,7 @@ contract Forwarder is Ownable, ReentrancyGuard {
         address to,
         uint256 tokenId,
         bytes calldata signature
-    ) external nonReentrant {
+    ) external nonReentrant returns (bool) {
         bytes memory data = abi.encodeWithSelector(
             IERC721.transferFrom.selector,
             from,
@@ -127,13 +152,14 @@ contract Forwarder is Ownable, ReentrancyGuard {
             to: token,
             value: 0,
             gas: 100000,
-            nonce: nonces[from],
+            nonce: _nonces[from],
             data: data,
             validUntil: block.timestamp + 3600
         });
 
         (bool success, ) = execute(req, signature);
         require(success, "ERC721 forward failed");
+        return success;
     }
 
     receive() external payable {}
