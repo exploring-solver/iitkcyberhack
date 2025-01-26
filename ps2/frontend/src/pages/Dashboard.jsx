@@ -1,3 +1,4 @@
+// Remove TransactionHistory import and all related code
 import React, { useState, useContext, useEffect } from 'react';
 import {
   Box,
@@ -7,530 +8,308 @@ import {
   TextField,
   Button,
   Grid,
-  MenuItem,
   Alert,
   CircularProgress,
 } from '@mui/material';
 import { Web3Context } from '../context/Web3Context';
-import TransactionHistory from '../components/TransactionHistory';
 import { isAddress } from 'web3-utils';
-
-const transactionTypes = [
-  { value: 'erc20', label: 'ERC-20 Transfer' },
-  { value: 'erc721', label: 'ERC-721 Transfer' },
-];
+import { ethers } from 'ethers';
+import TestToken from '../contracts/TestToken.json';
 
 export default function Dashboard() {
   const { web3, account, forwarder, loading: web3Loading } = useContext(Web3Context);
   const [formData, setFormData] = useState({
-    type: 'erc20',
     tokenAddress: '',
     recipient: '',
     amount: '',
-    tokenId: '',
   });
-  const [errors, setErrors] = useState({});
+  const [permitData, setPermitData] = useState(null);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
-  const [gasEstimate, setGasEstimate] = useState(null);
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    console.log('Validating form data:', formData);
-
-    if (!isAddress(formData.tokenAddress)) {
-      newErrors.tokenAddress = 'Invalid token address';
-    }
-    if (!isAddress(formData.recipient)) {
-      newErrors.recipient = 'Invalid recipient address';
-    }
-    if (formData.type === 'erc20' && (!formData.amount || formData.amount <= 0)) {
-      newErrors.amount = 'Invalid amount';
-    }
-    if (formData.type === 'erc721' && (!formData.tokenId || formData.tokenId < 0)) {
-      newErrors.tokenId = 'Invalid token ID';
-    }
-
-    console.log('Validation errors:', newErrors);
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const estimateGas = async () => {
-    if (!validateForm()) return;
-
+  const handleSignPermit = async () => {
     try {
-      console.log('Estimating gas...');
+      setLoading(true);
 
-      // Convert amount to wei if it's an ERC20 transfer
-      const amount = formData.type === 'erc20'
-        ? web3.utils.toWei(formData.amount.toString(), 'ether')
-        : formData.tokenId;
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts',
+      });
 
-      console.log('Amount in wei:', amount);
-
-      // First, check if the token contract has approved the forwarder
-      if (formData.type === 'erc20') {
-        const tokenContract = new web3.eth.Contract(
-          [
-            {
-              "constant": true,
-              "inputs": [
-                {
-                  "name": "owner",
-                  "type": "address"
-                },
-                {
-                  "name": "spender",
-                  "type": "address"
-                }
-              ],
-              "name": "allowance",
-              "outputs": [{ "name": "", "type": "uint256" }],
-              "type": "function"
-            },
-            {
-              "constant": true,
-              "inputs": [{ "name": "account", "type": "address" }],
-              "name": "balanceOf",
-              "outputs": [{ "name": "", "type": "uint256" }],
-              "type": "function"
-            }
-          ],
-          formData.tokenAddress
-        );
-
-        // Check balance
-        const balance = await tokenContract.methods.balanceOf(account).call();
-        console.log('Token balance:', balance);
-        if (BigInt(balance) < (BigInt(amount))) {
-          throw new Error('Insufficient token balance');
-        }
-
-        // Check allowance
-        const allowance = await tokenContract.methods
-          .allowance(account, forwarder._address)
-          .call();
-        console.log('Current allowance:', allowance);
-
-        if (BigInt(allowance)< (BigInt(amount))) {
-          throw new Error('Please approve the Forwarder contract first');
-        }
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No authorized accounts found');
       }
 
-      // Create dummy signature for estimation
-      const dummySignature = '0x' + '00'.repeat(65);
+      const tokenContract = new web3.eth.Contract(
+        TestToken.abi,
+        formData.tokenAddress
+      );
 
-      console.log('Estimating gas for transfer with params:', {
+      // Check token balance
+      const balance = await tokenContract.methods.balanceOf(account).call();
+      const amount = web3.utils.toWei(formData.amount.toString(), 'ether');
+      
+      if (BigInt(amount) > BigInt(balance)) {
+        throw new Error('Insufficient token balance');
+      }
+
+      const deadline = Math.floor(Date.now() / 1000) + 3600;
+      const nonce = await tokenContract.methods.nonces(account).call();
+      const chainId = await web3.eth.getChainId();
+      const name = await tokenContract.methods.name().call();
+      const version = '1';
+
+      const domain = {
+        name: name,
+        version: version,
+        chainId: chainId.toString(),
+        verifyingContract: formData.tokenAddress
+      };
+
+      const permit = {
+        owner: account,
+        spender: forwarder._address,
+        value: amount.toString(),
+        nonce: nonce.toString(),
+        deadline: deadline.toString()
+      };
+
+      const typedData = {
+        types: {
+          EIP712Domain: [
+            { name: 'name', type: 'string' },
+            { name: 'version', type: 'string' },
+            { name: 'chainId', type: 'uint256' },
+            { name: 'verifyingContract', type: 'address' }
+          ],
+          Permit: [
+            { name: 'owner', type: 'address' },
+            { name: 'spender', type: 'address' },
+            { name: 'value', type: 'uint256' },
+            { name: 'nonce', type: 'uint256' },
+            { name: 'deadline', type: 'uint256' }
+          ]
+        },
+        primaryType: 'Permit',
+        domain: domain,
+        message: permit
+      };
+
+      const signature = await window.ethereum.request({
+        method: 'eth_signTypedData_v4',
+        params: [account, JSON.stringify(typedData)],
+      });
+
+      const r = signature.slice(0, 66);
+      const s = '0x' + signature.slice(66, 130);
+      const v = parseInt(signature.slice(130, 132), 16);
+
+      // Store permit data for the recipient
+      const permitInfo = {
         tokenAddress: formData.tokenAddress,
         from: account,
         to: formData.recipient,
         amount: amount,
-        signature: dummySignature
-      });
-
-      // Estimate gas for the appropriate method
-      const method = formData.type === 'erc20'
-        ? forwarder.methods.forwardERC20Transfer(
-          formData.tokenAddress,
-          account,
-          formData.recipient,
-          amount,
-          dummySignature
-        )
-        : forwarder.methods.forwardERC721Transfer(
-          formData.tokenAddress,
-          account,
-          formData.recipient,
-          formData.tokenId,
-          dummySignature
-        );
-
-      const gasEstimate = await method.estimateGas({
-        from: account,
-      });
-
-      const gasPrice = await web3.eth.getGasPrice();
-      const estimatedCost = web3.utils.fromWei(
-        (BigInt(gasEstimate) * BigInt(gasPrice)).toString(),
-        'ether'
-      );
-
-      setGasEstimate({
-        gas: gasEstimate,
-        cost: estimatedCost,
-      });
-
-      console.log('Gas estimation successful:', {
-        gasEstimate,
-        estimatedCost
-      });
-
-    } catch (error) {
-      console.error('Gas estimation failed:', error);
-      setStatus({
-        type: 'error',
-        message: error.message || 'Gas estimation failed. Make sure you have approved the Forwarder contract.',
-      });
-    }
-  };
-
-  const approveForwarder = async () => {
-    try {
-      setStatus({
-        type: 'info',
-        message: 'Approving Forwarder contract...',
-      });
-
-      const tokenContract = new web3.eth.Contract(
-        [
-          {
-            "constant": false,
-            "inputs": [
-              {
-                "name": "spender",
-                "type": "address"
-              },
-              {
-                "name": "amount",
-                "type": "uint256"
-              }
-            ],
-            "name": "approve",
-            "outputs": [{ "name": "", "type": "bool" }],
-            "type": "function"
-          }
-        ],
-        formData.tokenAddress
-      );
-
-      const maxUint256 = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
-      console.log('Approving forwarder address:', forwarder._address);
-
-      const tx = await tokenContract.methods
-        .approve(forwarder._address, maxUint256)
-        .send({ from: account });
-
-      console.log('Approval transaction:', tx);
-
-      setStatus({
-        type: 'success',
-        message: 'Forwarder contract approved successfully!',
-      });
-    } catch (error) {
-      console.error('Approval failed:', error);
-      setStatus({
-        type: 'error',
-        message: 'Failed to approve Forwarder contract: ' + error.message,
-      });
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    setLoading(true);
-    try {
-      console.log('Preparing transaction with form data:', formData);
-
-      // Convert amount to wei if it's an ERC20 transfer
-      const amount = formData.type === 'erc20'
-        ? web3.utils.toWei(formData.amount.toString(), 'ether')
-        : formData.tokenId;
-
-      console.log('Amount in wei:', amount);
-
-      // Check token approval first
-      if (formData.type === 'erc20') {
-        const tokenContract = new web3.eth.Contract(
-          [
-            {
-              "constant": true,
-              "inputs": [
-                { "name": "owner", "type": "address" },
-                { "name": "spender", "type": "address" }
-              ],
-              "name": "allowance",
-              "outputs": [{ "name": "", "type": "uint256" }],
-              "type": "function"
-            },
-            {
-              "constant": true,
-              "inputs": [{ "name": "account", "type": "address" }],
-              "name": "balanceOf",
-              "outputs": [{ "name": "", "type": "uint256" }],
-              "type": "function"
-            }
-          ],
-          formData.tokenAddress
-        );
-
-        const balance = await tokenContract.methods.balanceOf(account).call();
-        console.log('Token balance:', balance);
-
-        if (BigInt(balance)< (BigInt(amount))) {
-          throw new Error('Insufficient token balance');
-        }
-
-        const allowance = await tokenContract.methods
-          .allowance(account, forwarder._address)
-          .call();
-        console.log('Current allowance:', allowance);
-
-        if (BigInt(allowance)<(BigInt(amount))) {
-          throw new Error('Please approve the Forwarder contract first');
-        }
-      }
-
-      // Get the nonce for the current user
-      const nonce = await forwarder.methods.getNonce(account).call();
-      console.log('Current nonce:', nonce);
-
-      // Create the forward request data
-      const data = formData.type === 'erc20'
-        ? web3.eth.abi.encodeFunctionCall({
-          name: 'transferFrom',
-          type: 'function',
-          inputs: [{
-            type: 'address',
-            name: 'from'
-          }, {
-            type: 'address',
-            name: 'to'
-          }, {
-            type: 'uint256',
-            name: 'amount'
-          }]
-        }, [account, formData.recipient, amount])
-        : web3.eth.abi.encodeFunctionCall({
-          name: 'transferFrom',
-          type: 'function',
-          inputs: [{
-            type: 'address',
-            name: 'from'
-          }, {
-            type: 'address',
-            name: 'to'
-          }, {
-            type: 'uint256',
-            name: 'tokenId'
-          }]
-        }, [account, formData.recipient, formData.tokenId]);
-
-      // Prepare the forward request
-      const forwardRequest = {
-        from: account,
-        to: formData.tokenAddress,
-        value: '0',
-        gas: '200000',
-        nonce: nonce.toString(),
-        data: data,
-        validUntil: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+        deadline: deadline,
+        v: v,
+        r: r,
+        s: s
       };
 
-      console.log('Forward request:', forwardRequest);
-
-      // Create the message to sign
-      const messageHash = web3.utils.soliditySha3(
-        { t: 'address', v: forwardRequest.from },
-        { t: 'address', v: forwardRequest.to },
-        { t: 'uint256', v: forwardRequest.value },
-        { t: 'uint256', v: forwardRequest.gas },
-        { t: 'uint256', v: forwardRequest.nonce },
-        { t: 'bytes', v: forwardRequest.data },
-        { t: 'uint256', v: forwardRequest.validUntil }
-      );
-
-      const signatureMessage = web3.utils.soliditySha3(
-        "\x19Ethereum Signed Message:\n32",
-        messageHash
-      );
-
-      console.log('Message to sign:', signatureMessage);
-
-      // Sign the message
-      const signature = await web3.eth.personal.sign(
-        signatureMessage,
-        account,
-        '' // password is empty for MetaMask
-      );
-
-      console.log('Signature:', signature);
-
-      // Execute the forward request
-      const method = formData.type === 'erc20'
-        ? forwarder.methods.forwardERC20Transfer(
-          formData.tokenAddress,
-          account,
-          formData.recipient,
-          amount,
-          signature
-        )
-        : forwarder.methods.forwardERC721Transfer(
-          formData.tokenAddress,
-          account,
-          formData.recipient,
-          formData.tokenId,
-          signature
-        );
-
-      const gasEstimate = await method.estimateGas({ from: account });
-      console.log('Gas estimate:', gasEstimate);
-
-      const tx = await method.send({
-        from: account,
-        gas: Math.floor(gasEstimate * 1.2), // Add 20% buffer
-      });
-
-      console.log('Transaction successful:', tx);
-
+      setPermitData(permitInfo);
       setStatus({
         type: 'success',
-        message: 'Transaction submitted successfully!',
+        message: 'Permit signed! Share the permit data with the recipient.'
       });
-      setFormData({
-        type: 'erc20',
-        tokenAddress: '',
-        recipient: '',
-        amount: '',
-        tokenId: '',
-      });
+      
     } catch (error) {
-      console.error('Transaction submission failed:', error);
+      console.error('Signing failed:', error);
       setStatus({
         type: 'error',
-        message: error.message || 'Transaction failed. Please check the console for details.',
+        message: error.message
       });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (formData.tokenAddress && formData.recipient) {
-      console.log('Form data updated, re-estimating gas...');
-      estimateGas();
-    }
-  }, [formData]);
+  const handleExecuteTransfer = async () => {
+    try {
+      setLoading(true);
 
-  if (web3Loading) {
-    console.log('Web3 is loading...');
-    return <CircularProgress />;
-  }
+      if (!permitData) {
+        throw new Error('No permit data available');
+      }
+
+      // Add debug logs
+      console.log('Current account:', account);
+      console.log('Permit data:', permitData);
+
+      // Check if current account is recipient
+      if (account.toLowerCase() !== permitData.to.toLowerCase()) {
+        throw new Error('Only the recipient can execute the transfer');
+      }
+
+      // Check if permit hasn't expired
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      if (parseInt(permitData.deadline) < currentTimestamp) {
+        throw new Error('Permit has expired');
+      }
+
+      // Check token balance
+      const tokenContract = new web3.eth.Contract(TestToken.abi, permitData.tokenAddress);
+      const balance = await tokenContract.methods.balanceOf(permitData.from).call();
+      console.log('Token balance of sender:', balance);
+      console.log('Amount to transfer:', permitData.amount);
+
+      // Convert to BigInt for comparison
+      const balanceBigInt = BigInt(balance);
+      const amountBigInt = BigInt(permitData.amount);
+      
+      if (balanceBigInt < amountBigInt) {
+        throw new Error('Insufficient token balance');
+      }
+
+      // Check current allowance
+      const allowance = await tokenContract.methods
+        .allowance(permitData.from, forwarder._address)
+        .call();
+      console.log('Current allowance:', allowance);
+
+      // Convert deadline to number if it's a BigInt
+      const deadlineValue = typeof permitData.deadline === 'bigint' 
+        ? Number(permitData.deadline) 
+        : permitData.deadline;
+
+      // Get gas estimate
+      const gasEstimate = await forwarder.methods
+        .forwardERC20TransferWithPermit(
+          permitData.tokenAddress,
+          permitData.from,
+          permitData.to,
+          permitData.amount.toString(),
+          deadlineValue,
+          permitData.v,
+          permitData.r,
+          permitData.s
+        )
+        .estimateGas({ from: account });
+
+      console.log('Estimated gas:', gasEstimate);
+
+      // Convert gasEstimate from BigInt to number and add 20% buffer
+      const gasLimit = Number(gasEstimate) + Math.floor(Number(gasEstimate) * 0.2);
+      console.log('Gas limit with buffer:', gasLimit);
+
+      const tx = await forwarder.methods
+        .forwardERC20TransferWithPermit(
+          permitData.tokenAddress,
+          permitData.from,
+          permitData.to,
+          permitData.amount.toString(),
+          deadlineValue,
+          permitData.v,
+          permitData.r,
+          permitData.s
+        )
+        .send({ 
+          from: account,
+          gas: gasLimit
+        });
+
+      console.log('Transaction successful:', tx);
+
+      setStatus({
+        type: 'success',
+        message: 'Transfer completed successfully!'
+      });
+      
+    } catch (error) {
+      console.error('Transfer execution failed:', error);
+      // Extract more detailed error message if available
+      const errorMessage = error.message.includes('execution reverted') 
+        ? error.message.split('execution reverted:')[1].trim()
+        : error.message;
+      setStatus({
+        type: 'error',
+        message: `Transfer failed: ${errorMessage}`
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        Send Gasless Transaction
+        Gasless Token Transfer with Permit
       </Typography>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <form onSubmit={handleSubmit}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12}>
-                    <TextField
-                      select
-                      fullWidth
-                      label="Transaction Type"
-                      name="type"
-                      value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    >
-                      {transactionTypes.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Token Address"
-                      name="tokenAddress"
-                      value={formData.tokenAddress}
-                      onChange={(e) => setFormData({ ...formData, tokenAddress: e.target.value })}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Recipient Address"
-                      name="recipient"
-                      value={formData.recipient}
-                      onChange={(e) => setFormData({ ...formData, recipient: e.target.value })}
-                    />
-                  </Grid>
-                  {formData.type === 'erc20' ? (
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Amount"
-                        name="amount"
-                        type="number"
-                        value={formData.amount}
-                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                      />
-                    </Grid>
-                  ) : (
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Token ID"
-                        name="tokenId"
-                        type="number"
-                        value={formData.tokenId}
-                        onChange={(e) => setFormData({ ...formData, tokenId: e.target.value })}
-                      />
-                    </Grid>
-                  )}
-                  {gasEstimate && (
-                    <Typography variant="body2" sx={{ mt: 2 }}>
-                      Estimated Gas: {gasEstimate.gas} (~{gasEstimate.cost} ETH)
-                    </Typography>
-                  )}
-                  <Grid item xs={12}>
-                    {formData.type === 'erc20' && (
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        onClick={approveForwarder}
-                        disabled={loading || !account}
-                        sx={{ mt: 2, mb: 2 }}
-                      >
-                        Approve Token Spending
-                      </Button>
-                    )}
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      type="submit"
-                      disabled={loading || !account}
-                      sx={{ mt: 2 }}
-                    >
-                      {loading ? <CircularProgress size={24} /> : 'Submit Transaction'}
-                    </Button>
-                  </Grid>
-                </Grid>
-              </form>
-              {status.message && (
-                <Alert severity={status.type} sx={{ mt: 2 }}>
-                  {status.message}
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <TransactionHistory />
-        </Grid>
-      </Grid>
+      <Card>
+        <CardContent>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Token Address"
+                value={formData.tokenAddress}
+                onChange={(e) => setFormData({ ...formData, tokenAddress: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Recipient Address"
+                value={formData.recipient}
+                onChange={(e) => setFormData({ ...formData, recipient: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Amount"
+                type="number"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Button
+                variant="contained"
+                onClick={handleSignPermit}
+                disabled={loading || !account}
+                fullWidth
+              >
+                {loading ? <CircularProgress size={24} /> : 'Sign Permit'}
+              </Button>
+            </Grid>
+            {permitData && (
+              <Grid item xs={12}>
+                <Button
+                  variant="contained"
+                  onClick={handleExecuteTransfer}
+                  disabled={loading || account === permitData.from}
+                  fullWidth
+                  color="secondary"
+                >
+                  {loading ? <CircularProgress size={24} /> : 'Execute Transfer (Recipient Only)'}
+                </Button>
+              </Grid>
+            )}
+          </Grid>
+          {status.message && (
+            <Alert severity={status.type} sx={{ mt: 2 }}>
+              {status.message}
+            </Alert>
+          )}
+          {permitData && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="h6">Permit Data:</Typography>
+              <pre style={{ overflow: 'auto' }}>
+                {JSON.stringify(permitData, null, 2)}
+              </pre>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
     </Box>
   );
 }

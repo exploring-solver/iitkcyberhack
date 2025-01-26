@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
 contract Forwarder is Ownable, ReentrancyGuard {
     using ECDSA for bytes32;
@@ -64,12 +65,16 @@ contract Forwarder is Ownable, ReentrancyGuard {
     }
 
     function execute(
-        ForwardRequest memory req, // Changed from calldata to memory
+        ForwardRequest memory req,
         bytes calldata signature
     ) public payable nonReentrant returns (bool, bytes memory) {
         require(block.timestamp <= req.validUntil, "Request expired");
         require(_nonces[req.from] == req.nonce, "Invalid nonce");
-        require(verify(req, signature), "Invalid signature");
+        
+        // Skip signature check if called internally via permit flow
+        if (msg.sender != address(this)) {
+            require(verify(req, signature), "Invalid signature");
+        }
 
         _nonces[req.from]++;
         bytes32 hash = keccak256(abi.encode(req, signature));
@@ -162,5 +167,53 @@ contract Forwarder is Ownable, ReentrancyGuard {
         return success;
     }
 
+    function forwardERC20TransferWithPermit(
+        address token,
+        address from,
+        address to,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external nonReentrant returns (bool) {
+        require(token != address(0), "Invalid token address");
+        require(from != address(0), "Invalid from address");
+        require(to != address(0), "Invalid to address");
+        require(amount > 0, "Amount must be greater than 0");
+        require(deadline >= block.timestamp, "Permit expired");
+
+        // Check token balance before permit
+        uint256 beforeBalance = IERC20(token).balanceOf(from);
+        require(beforeBalance >= amount, "Insufficient token balance");
+
+        // First call permit to approve the forwarder
+        try IERC20Permit(token).permit(from, address(this), amount, deadline, v, r, s) {
+            // Permit successful
+            emit Debug("Permit successful");
+        } catch Error(string memory reason) {
+            revert(string(abi.encodePacked("Permit failed: ", reason)));
+        } catch (bytes memory) {
+            revert("Permit failed with no reason");
+        }
+
+        // Verify allowance after permit
+        uint256 allowance = IERC20(token).allowance(from, address(this));
+        require(allowance >= amount, "Insufficient allowance after permit");
+        
+        // Then execute the transfer
+        try IERC20(token).transferFrom(from, to, amount) returns (bool success) {
+            require(success, "Transfer failed");
+            return true;
+        } catch Error(string memory reason) {
+            revert(string(abi.encodePacked("TransferFrom failed: ", reason)));
+        } catch (bytes memory) {
+            revert("TransferFrom failed with no reason");
+        }
+    }
+
     receive() external payable {}
+
+    // Add an event for debugging
+    event Debug(string message);
 }
