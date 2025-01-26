@@ -1,0 +1,10 @@
+npx hardhat node
+(This runs local blockchain, take any one to be receiver's address)
+
+
+npx hardhat run scripts/deploy.js --network localhost
+(Deploys contract locally)
+
+npx hardhat run scripts/deployToken.js --network localhost
+(This gives token address)
+

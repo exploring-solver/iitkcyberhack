@@ -1,0 +1,4 @@
+Forwarder deployed to: 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9
+TestToken deployed to: 0x0165878A594ca255338adfa4d48449f69242Eb8F
+
+Remix token: 0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8
