@@ -1,5 +1,5 @@
-const Forwarder = artifacts.require("Forwarder");
+// const Forwarder = artifacts.require("Forwarder");
 
-module.exports = function(deployer) {
-  deployer.deploy(Forwarder);
-}; 
+// module.exports = function(deployer) {
+//   deployer.deploy(Forwarder);
+// }; 

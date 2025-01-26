@@ -63,9 +63,9 @@ export default function Dashboard() {
 
     try {
       console.log('Estimating gas...');
-      
+
       // Convert amount to wei if it's an ERC20 transfer
-      const amount = formData.type === 'erc20' 
+      const amount = formData.type === 'erc20'
         ? web3.utils.toWei(formData.amount.toString(), 'ether')
         : formData.tokenId;
 
@@ -88,14 +88,14 @@ export default function Dashboard() {
                 }
               ],
               "name": "allowance",
-              "outputs": [{"name": "", "type": "uint256"}],
+              "outputs": [{ "name": "", "type": "uint256" }],
               "type": "function"
             },
             {
               "constant": true,
-              "inputs": [{"name": "account", "type": "address"}],
+              "inputs": [{ "name": "account", "type": "address" }],
               "name": "balanceOf",
-              "outputs": [{"name": "", "type": "uint256"}],
+              "outputs": [{ "name": "", "type": "uint256" }],
               "type": "function"
             }
           ],
@@ -105,7 +105,7 @@ export default function Dashboard() {
         // Check balance
         const balance = await tokenContract.methods.balanceOf(account).call();
         console.log('Token balance:', balance);
-        if (web3.utils.toBN(balance).lt(web3.utils.toBN(amount))) {
+        if (BigInt(balance) < (BigInt(amount))) {
           throw new Error('Insufficient token balance');
         }
 
@@ -115,7 +115,7 @@ export default function Dashboard() {
           .call();
         console.log('Current allowance:', allowance);
 
-        if (web3.utils.toBN(allowance).lt(web3.utils.toBN(amount))) {
+        if (BigInt(allowance)< (BigInt(amount))) {
           throw new Error('Please approve the Forwarder contract first');
         }
       }
@@ -134,19 +134,19 @@ export default function Dashboard() {
       // Estimate gas for the appropriate method
       const method = formData.type === 'erc20'
         ? forwarder.methods.forwardERC20Transfer(
-            formData.tokenAddress,
-            account,
-            formData.recipient,
-            amount,
-            dummySignature
-          )
+          formData.tokenAddress,
+          account,
+          formData.recipient,
+          amount,
+          dummySignature
+        )
         : forwarder.methods.forwardERC721Transfer(
-            formData.tokenAddress,
-            account,
-            formData.recipient,
-            formData.tokenId,
-            dummySignature
-          );
+          formData.tokenAddress,
+          account,
+          formData.recipient,
+          formData.tokenId,
+          dummySignature
+        );
 
       const gasEstimate = await method.estimateGas({
         from: account,
@@ -199,7 +199,7 @@ export default function Dashboard() {
               }
             ],
             "name": "approve",
-            "outputs": [{"name": "", "type": "bool"}],
+            "outputs": [{ "name": "", "type": "bool" }],
             "type": "function"
           }
         ],
@@ -208,7 +208,7 @@ export default function Dashboard() {
 
       const maxUint256 = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
       console.log('Approving forwarder address:', forwarder._address);
-      
+
       const tx = await tokenContract.methods
         .approve(forwarder._address, maxUint256)
         .send({ from: account });
@@ -237,7 +237,7 @@ export default function Dashboard() {
       console.log('Preparing transaction with form data:', formData);
 
       // Convert amount to wei if it's an ERC20 transfer
-      const amount = formData.type === 'erc20' 
+      const amount = formData.type === 'erc20'
         ? web3.utils.toWei(formData.amount.toString(), 'ether')
         : formData.tokenId;
 
@@ -250,18 +250,18 @@ export default function Dashboard() {
             {
               "constant": true,
               "inputs": [
-                {"name": "owner", "type": "address"},
-                {"name": "spender", "type": "address"}
+                { "name": "owner", "type": "address" },
+                { "name": "spender", "type": "address" }
               ],
               "name": "allowance",
-              "outputs": [{"name": "", "type": "uint256"}],
+              "outputs": [{ "name": "", "type": "uint256" }],
               "type": "function"
             },
             {
               "constant": true,
-              "inputs": [{"name": "account", "type": "address"}],
+              "inputs": [{ "name": "account", "type": "address" }],
               "name": "balanceOf",
-              "outputs": [{"name": "", "type": "uint256"}],
+              "outputs": [{ "name": "", "type": "uint256" }],
               "type": "function"
             }
           ],
@@ -270,8 +270,8 @@ export default function Dashboard() {
 
         const balance = await tokenContract.methods.balanceOf(account).call();
         console.log('Token balance:', balance);
-        
-        if (web3.utils.toBN(balance).lt(web3.utils.toBN(amount))) {
+
+        if (BigInt(balance)< (BigInt(amount))) {
           throw new Error('Insufficient token balance');
         }
 
@@ -280,7 +280,7 @@ export default function Dashboard() {
           .call();
         console.log('Current allowance:', allowance);
 
-        if (web3.utils.toBN(allowance).lt(web3.utils.toBN(amount))) {
+        if (BigInt(allowance)<(BigInt(amount))) {
           throw new Error('Please approve the Forwarder contract first');
         }
       }
@@ -288,37 +288,37 @@ export default function Dashboard() {
       // Get the nonce for the current user
       const nonce = await forwarder.methods.getNonce(account).call();
       console.log('Current nonce:', nonce);
-      
+
       // Create the forward request data
-      const data = formData.type === 'erc20' 
+      const data = formData.type === 'erc20'
         ? web3.eth.abi.encodeFunctionCall({
-            name: 'transferFrom',
-            type: 'function',
-            inputs: [{
-              type: 'address',
-              name: 'from'
-            }, {
-              type: 'address',
-              name: 'to'
-            }, {
-              type: 'uint256',
-              name: 'amount'
-            }]
-          }, [account, formData.recipient, amount])
+          name: 'transferFrom',
+          type: 'function',
+          inputs: [{
+            type: 'address',
+            name: 'from'
+          }, {
+            type: 'address',
+            name: 'to'
+          }, {
+            type: 'uint256',
+            name: 'amount'
+          }]
+        }, [account, formData.recipient, amount])
         : web3.eth.abi.encodeFunctionCall({
-            name: 'transferFrom',
-            type: 'function',
-            inputs: [{
-              type: 'address',
-              name: 'from'
-            }, {
-              type: 'address',
-              name: 'to'
-            }, {
-              type: 'uint256',
-              name: 'tokenId'
-            }]
-          }, [account, formData.recipient, formData.tokenId]);
+          name: 'transferFrom',
+          type: 'function',
+          inputs: [{
+            type: 'address',
+            name: 'from'
+          }, {
+            type: 'address',
+            name: 'to'
+          }, {
+            type: 'uint256',
+            name: 'tokenId'
+          }]
+        }, [account, formData.recipient, formData.tokenId]);
 
       // Prepare the forward request
       const forwardRequest = {
@@ -363,19 +363,19 @@ export default function Dashboard() {
       // Execute the forward request
       const method = formData.type === 'erc20'
         ? forwarder.methods.forwardERC20Transfer(
-            formData.tokenAddress,
-            account,
-            formData.recipient,
-            amount,
-            signature
-          )
+          formData.tokenAddress,
+          account,
+          formData.recipient,
+          amount,
+          signature
+        )
         : forwarder.methods.forwardERC721Transfer(
-            formData.tokenAddress,
-            account,
-            formData.recipient,
-            formData.tokenId,
-            signature
-          );
+          formData.tokenAddress,
+          account,
+          formData.recipient,
+          formData.tokenId,
+          signature
+        );
 
       const gasEstimate = await method.estimateGas({ from: account });
       console.log('Gas estimate:', gasEstimate);

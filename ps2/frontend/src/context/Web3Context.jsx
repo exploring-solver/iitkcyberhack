@@ -18,6 +18,7 @@ export const Web3Provider = ({ children }) => {
       if (window.ethereum) {
         const web3Instance = new Web3(window.ethereum);
         console.log('Web3 instance created.');
+        console.log("web3instance",web3Instance);
 
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         console.log('Requested accounts from MetaMask.');
@@ -39,7 +40,9 @@ export const Web3Provider = ({ children }) => {
           setForwarder(forwarderInstance);
         } else {
           // For local development, you can hardcode the address
-          const localContractAddress = "0xBc09CB2f0Ae4302C4c46E3AFA5812bc405eB4fe1"; // Replace with your deployed contract address
+          // const localContractAddress = "0xBc09CB2f0Ae4302C4c46E3AFA5812bc405eB4fe1"; // Replace with your deployed contract address
+          // const localContractAddress = "0xB6708B6Ace7fEe450B8ADc8a6ddb9C6D5079a43a"; // made 26-01-2025 locally at 15:25
+          const localContractAddress = "0x0586A681591e5C0e06532721A6c59029bB7cC613"; // made 26-01-2025 locally at 19:16
           const forwarderInstance = new web3Instance.eth.Contract(
             ForwarderContract.abi,
             localContractAddress
@@ -49,6 +52,7 @@ export const Web3Provider = ({ children }) => {
         }
 
         setWeb3(web3Instance);
+        console.log(web3);
         setAccount(accounts[0]);
         setNetworkId(netId);
         setError(null);
