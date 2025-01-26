@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -36,7 +37,7 @@ export default function Layout({ children }) {
     <div>
       <Toolbar>
         <Typography variant="h6" noWrap component="div">
-          Gasless Forwarder
+          Where&apos;s Gas
         </Typography>
       </Toolbar>
       <Divider />
