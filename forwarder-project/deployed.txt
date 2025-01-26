@@ -1,4 +1,12 @@
+For ERC20:
+
 Forwarder deployed to: 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9
 TestToken deployed to: 0x0165878A594ca255338adfa4d48449f69242Eb8F
 
-Remix token: 0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8
+
+
+For ERC721:
+
+TestNFT deployed to: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+NFT minted to: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266  
+(also the tokenid)
