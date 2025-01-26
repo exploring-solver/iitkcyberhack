@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Settings from './pages/Settings';
 import { Web3Provider } from './context/Web3Context';
+import Instructions from './components/Instructions';
 
 const darkTheme = createTheme({
   palette: {
@@ -34,6 +35,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
+              <Route path="/instructions" element={<Instructions />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>
           </Layout>

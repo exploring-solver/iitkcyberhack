@@ -42,7 +42,7 @@ export const Web3Provider = ({ children }) => {
           // For local development, you can hardcode the address
           // const localContractAddress = "0xBc09CB2f0Ae4302C4c46E3AFA5812bc405eB4fe1"; // Replace with your deployed contract address
           // const localContractAddress = "0xB6708B6Ace7fEe450B8ADc8a6ddb9C6D5079a43a"; // made 26-01-2025 locally at 15:25
-          const localContractAddress = "0x5f4b481244A6bEE8B4d27117a90939d1A079812e"; // made 26-01-2025 locally at 19:16
+          const localContractAddress = "0x46ceD59D1F4E0213cB4e468b4c2302F71366D7EF"; // made 26-01-2025 locally at 19:16
           const forwarderInstance = new web3Instance.eth.Contract(
             ForwarderContract.abi,
             localContractAddress

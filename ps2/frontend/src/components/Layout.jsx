@@ -19,6 +19,7 @@ import {
   Dashboard as DashboardIcon,
   SwapHoriz as TransactionsIcon,
   Settings as SettingsIcon,
+  IntegrationInstructions,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -30,6 +31,7 @@ export default function Layout({ children }) {
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Transactions', icon: <TransactionsIcon />, path: '/transactions' },
+    { text: 'Instructions', icon: <IntegrationInstructions />, path: '/instructions' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   ];
 
