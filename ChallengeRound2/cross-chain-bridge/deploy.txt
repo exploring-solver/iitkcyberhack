@@ -1,0 +1,199 @@
+1) localAmoy deployment:
+
+Deploying contracts with account: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+Token deployed at: 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707
+Bridge deployed at: 0x0165878A594ca255338adfa4d48449f69242Eb8F
+Bridge set as token owner.
+
+  Contract deployment: Token
+  Contract address:    0x5fc8d32690cc91d4c39d9d3abcbd16989f875707
+  Transaction:         0x0c935d798bd440e0a288f4aaaf1d685bc0dfa1d9eed535731cc7424bbdcecbdf
+  From:                0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+  Value:               0 ETH
+  Gas used:            1238396 of 1238396
+  Block #6:            0x5bd599498b37fa52c3471a37e371c4d13c0aa33123cd53d635cf51578bee8d18
+
+  Contract deployment: Bridge
+  Contract address:    0x0165878a594ca255338adfa4d48449f69242eb8f
+  Transaction:         0xc4c204da6df220aad17e7ddcdbe3f099cfc1c3aa5fdc06cf2542b8c85bf269e1
+  From:                0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+  Value:               0 ETH
+  Gas used:            641842 of 641842
+  Block #7:            0x49c0c6865be467eff91c9d76ab4347e48c35c2cc43bfb6278133b4d84abc96ed
+
+  Contract call:       Token#transferOwnership
+  Transaction:         0x73de6ba3bb7455e32a3d1c172385bbfd16ef1bd447550af398a8c1c4d77e5543
+  From:                0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+  To:                  0x5fc8d32690cc91d4c39d9d3abcbd16989f875707
+  Value:               0 ETH
+  Gas used:            29064 of 29064
+  Block #8:            0x102a218dcd973a3bb1215816171061a49b2a074fca8df757c4695b08ef2667bd
+
+
+2) localSepolia deployment:
+
+Deploying contracts with account: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+Token deployed at: 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9
+Bridge deployed at: 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9
+Bridge set as token owner.
+
+  Contract deployment: Token
+  Contract address:    0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9
+  Transaction:         0x302bbf11bf3717b8c8e0b11f61c7c17dbfa928e2a0d518895cb335e195a1c709
+  From:                0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+  Value:               0 ETH
+  Gas used:            1238396 of 1238396
+  Block #4:            0xb16b860710e0406904c20796f638ec3ac6c1f5d873542d5c898eb944f5ca424a
+
+  Contract deployment: Bridge
+  Contract address:    0xdc64a140aa3e981100a9beca4e685f962f0cf6c9
+  Transaction:         0x86be0e37412c5e252072631e948fb00cb7c5616d7c4e13a84a81ccc14536d7be
+  From:                0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+  Value:               0 ETH
+  Gas used:            641842 of 641842
+  Block #5:            0x7412e80f1cf3d0acca2b303ee63b04b492c971e45d61d9b8546c3fc46ede1ea8
+
+  Contract call:       Token#transferOwnership
+  Transaction:         0xfdaec439c48a70572692eac70911690eccbb417861eb7e78ae3c3f1a6bcb93b8
+  From:                0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+  To:                  0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9
+  Value:               0 ETH
+  Gas used:            29052 of 29052
+  Block #6:            0xf1b686c23b95f4d74feec220e16baa26470fc1709c6e7821b4209445aec357b6
+
+
+3) 10 token approved on localAmoy:
+
+ContractTransactionResponse {
+  provider: HardhatEthersProvider {
+    _hardhatProvider: LazyInitializationProviderAdapter {
+      _providerFactory: [AsyncFunction (anonymous)],
+      _emitter: [EventEmitter],
+      _initializingPromise: [Promise],
+      provider: [BackwardsCompatibilityProviderAdapter]
+    },
+    _networkName: 'localAmoy',
+    _blockListeners: [],
+    _transactionHashListeners: Map(0) {},
+    _eventListeners: []
+  },
+  blockNumber: 9,
+  blockHash: '0x64619a9bc449137eaa85e55f29068035f90b24020d50c11725b0fe8b3a458e0d',
+  index: undefined,
+  hash: '0x46b3ded00f0aae7ba1eee012c1a94ef544ebee020d24a26f30cb554cb1641db0',
+  type: 2,
+  to: '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707',
+  from: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+  nonce: 8,
+  gasLimit: 46975n,
+  gasPrice: 395097955n,
+  maxPriorityFeePerGas: 94741538n,
+  maxFeePerGas: 395097955n,
+  maxFeePerBlobGas: null,
+  data: '0x095ea7b30000000000000000000000000165878a594ca255338adfa4d48449f69242eb8f0000000000000000000000000000000000000000000000008ac7230489e80000',
+  value: 0n,
+  chainId: 31337n,
+  signature: Signature { r: "0x5fa460e5930f4cd9296add39225da3bdd29c53d47b07b86185bcc4f01595caf8", s: "0x074b57a29f9e5aaf214640b6dba5ad85317e94652b904c170e102549d5535be8", yParity: 0, networkV: null },
+  accessList: [],
+  blobVersionedHashes: null
+}
+
+  Contract call:       Token#approve
+  Transaction:         0x46b3ded00f0aae7ba1eee012c1a94ef544ebee020d24a26f30cb554cb1641db0
+  From:                0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+  To:                  0x5fc8d32690cc91d4c39d9d3abcbd16989f875707
+  Value:               0 ETH
+  Gas used:            46975 of 46975
+  Block #9:            0x64619a9bc449137eaa85e55f29068035f90b24020d50c11725b0fe8b3a458e0d
+
+
+4) 10 tokens locked on localAmoy:
+
+ContractTransactionResponse {
+  provider: HardhatEthersProvider {
+    _hardhatProvider: LazyInitializationProviderAdapter {
+      _providerFactory: [AsyncFunction (anonymous)],
+      _emitter: [EventEmitter],
+      _initializingPromise: [Promise],
+      provider: [BackwardsCompatibilityProviderAdapter]
+    },
+    _networkName: 'localAmoy',
+    _blockListeners: [],
+    _transactionHashListeners: Map(0) {},
+    _eventListeners: []
+  },
+  blockNumber: 10,
+  blockHash: '0x23b97cab563f7c6c59e64d765c4513dae5505d9a318d6e19b17fd98bc6e0e67f',
+  index: undefined,
+  hash: '0xcd490e9e1f4cf0836ed1dcc28ea2e700d0475688742e29b24588239545353299',
+  type: 2,
+  to: '0x0165878A594ca255338adfa4d48449f69242Eb8F',
+  from: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+  nonce: 9,
+  gasLimit: 65696n,
+  gasPrice: 345865375n,
+  maxPriorityFeePerGas: 82921793n,
+  maxFeePerGas: 345865375n,
+  maxFeePerBlobGas: null,
+  data: '0xdd4670640000000000000000000000000000000000000000000000008ac7230489e80000',
+  value: 0n,
+  chainId: 31337n,
+  signature: Signature { r: "0xff15002c3d338c5eaa54ba3d5b2c81081c015d50c0b8dc764f26069a9814d226", s: "0x03b8fa8f6724d6b2b380001515de4805d51c49531b9a56beaa7e42c7624e0f11", yParity: 0, networkV: null },
+  accessList: [],
+  blobVersionedHashes: null
+}
+
+  Contract call:       Bridge#lock
+  Transaction:         0xcd490e9e1f4cf0836ed1dcc28ea2e700d0475688742e29b24588239545353299
+  From:                0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+  To:                  0x0165878a594ca255338adfa4d48449f69242eb8f
+  Value:               0 ETH
+  Gas used:            60496 of 65696
+  Block #10:           0x23b97cab563f7c6c59e64d765c4513dae5505d9a318d6e19b17fd98bc6e0e67f
+
+
+
+5) 10 token release on localSepolia:
+
+
+ContractTransactionResponse {
+  provider: HardhatEthersProvider {
+    _hardhatProvider: LazyInitializationProviderAdapter {
+      _providerFactory: [AsyncFunction (anonymous)],
+      _emitter: [EventEmitter],
+      _initializingPromise: [Promise],
+      provider: [BackwardsCompatibilityProviderAdapter]
+    },
+    _networkName: 'localSepolia',
+    _blockListeners: [],
+    _transactionHashListeners: Map(0) {},
+    _eventListeners: []
+  },
+  blockNumber: 7,
+  blockHash: '0x952237e0deafc9f3aa581564fc8d5a1b96d617d8b62448584212e8c096b2f59a',
+  index: undefined,
+  hash: '0x9a22d106f52f75a3441830483f74726a0ecc203d83fe0e72ee60c7bac2a5311b',
+  type: 2,
+  to: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9',
+  from: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+  nonce: 6,
+  gasLimit: 46822n,
+  gasPrice: 515518464n,
+  maxPriorityFeePerGas: 123617491n,
+  maxFeePerGas: 515518464n,
+  maxFeePerBlobGas: null,
+  data: '0x0357371d000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb922660000000000000000000000000000000000000000000000008ac7230489e80000',
+  value: 0n,
+  chainId: 31337n,
+  signature: Signature { r: "0xa2794b6f608f0306c192b8758d8475278b36d5c19e54f2ab1e92cdbd7f9df5b1", s: "0x024d8340b84cf5fd554de10e418a23cd16d58bc662f0f8ddecfe81ab71cd35c4", yParity: 1, networkV: null },
+  accessList: [],
+  blobVersionedHashes: null
+}
+
+  Contract call:       Bridge#release
+  Transaction:         0x9a22d106f52f75a3441830483f74726a0ecc203d83fe0e72ee60c7bac2a5311b
+  From:                0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+  To:                  0xdc64a140aa3e981100a9beca4e685f962f0cf6c9
+  Value:               0 ETH
+  Gas used:            46822 of 46822
+  Block #7:            0x952237e0deafc9f3aa581564fc8d5a1b96d617d8b62448584212e8c096b2f59a
