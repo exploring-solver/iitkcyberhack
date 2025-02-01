@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -18,6 +19,7 @@ import {
   Dashboard as DashboardIcon,
   SwapHoriz as TransactionsIcon,
   Settings as SettingsIcon,
+  IntegrationInstructions,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -29,6 +31,7 @@ export default function Layout({ children }) {
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Transactions', icon: <TransactionsIcon />, path: '/transactions' },
+    { text: 'Instructions', icon: <IntegrationInstructions />, path: '/instructions' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   ];
 
@@ -36,7 +39,7 @@ export default function Layout({ children }) {
     <div>
       <Toolbar>
         <Typography variant="h6" noWrap component="div">
-          Gasless Forwarder
+          Where&apos;s Gas
         </Typography>
       </Toolbar>
       <Divider />

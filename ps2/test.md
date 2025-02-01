@@ -1,3 +1,7 @@
+TestToken - 0x503ae0A3a97Edc88eE13D09DBC47a7d2192B2DBc
+
+Forwarder - 0xF9420522bD96b12A7384F1a063dF8fA822BEbC41
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -177,43 +181,39 @@ contract Forwarder is Ownable, ReentrancyGuard {
         bytes32 r,
         bytes32 s
     ) external nonReentrant returns (bool) {
-        require(token != address(0), "Invalid token address");
-        require(from != address(0), "Invalid from address");
-        require(to != address(0), "Invalid to address");
-        require(amount > 0, "Amount must be greater than 0");
-        require(deadline >= block.timestamp, "Permit expired");
-
-        // Check token balance before permit
-        uint256 beforeBalance = IERC20(token).balanceOf(from);
-        require(beforeBalance >= amount, "Insufficient token balance");
-
-        // First call permit to approve the forwarder
-        try IERC20Permit(token).permit(from, address(this), amount, deadline, v, r, s) {
-            // Permit successful
-            emit Debug("Permit successful");
-        } catch Error(string memory reason) {
-            revert(string(abi.encodePacked("Permit failed: ", reason)));
-        } catch (bytes memory) {
-            revert("Permit failed with no reason");
-        }
-
-        // Verify allowance after permit
-        uint256 allowance = IERC20(token).allowance(from, address(this));
-        require(allowance >= amount, "Insufficient allowance after permit");
+        // Call permit
+        IERC20Permit(token).permit(from, address(this), amount, deadline, v, r, s);
         
-        // Then execute the transfer
-        try IERC20(token).transferFrom(from, to, amount) returns (bool success) {
-            require(success, "Transfer failed");
-            return true;
-        } catch Error(string memory reason) {
-            revert(string(abi.encodePacked("TransferFrom failed: ", reason)));
-        } catch (bytes memory) {
-            revert("TransferFrom failed with no reason");
-        }
+        // Create transfer data
+        bytes memory data = abi.encodeWithSelector(
+            IERC20.transferFrom.selector,
+            from,
+            to,
+            amount
+        );
+
+        // Build request
+        ForwardRequest memory req = ForwardRequest({
+            from: from,
+            to: token,
+            value: 0,
+            gas: 150000,
+            nonce: _nonces[from],
+            data: data,
+            validUntil: deadline
+        });
+
+        // Execute without signature (skip verification)
+        (bool success, ) = address(this).call(
+            abi.encodeWithSelector(
+                this.execute.selector,
+                req,
+                "" // Empty signature
+            )
+        );
+        require(success, "ERC20 forward failed");
+        return success;
     }
 
     receive() external payable {}
-
-    // Add an event for debugging
-    event Debug(string message);
 }

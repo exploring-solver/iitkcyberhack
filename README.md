@@ -1,90 +1,116 @@
-### Hack IITK 2024-2025
+# Gasless Token Transfer with EIP-2612 Permit
 
-# Threat Intelligence Extractor
+This project demonstrates gasless token transfers using EIP-2612 permit functionality. The sender signs a permit message, and the recipient executes the transfer, paying for the gas fees.
 
-This tool automatically extracts key threat intelligence data from natural language threat reports.
+## Prerequisites
 
-## Features
+- Node.js and npm installed
+- MetaMask browser extension
+- Basic understanding of Ethereum and smart contracts
 
-- Extracts Indicators of Compromise (IoCs)
-  - IP addresses
-  - Domains
-  - Email addresses
-  - File hashes
-- Identifies TTPs using MITRE ATT&CK framework
-- Detects threat actor names
-- Extracts malware details with VirusTotal integration
-- Identifies targeted entities and sectors
+## Setup Instructions
 
-## Installation
+### 1. Local Blockchain Setup
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/threat-intel-extractor.git
-cd threat-intel-extractor
+# Install Ganache globally
+npm install -g ganache
+
+# Start Ganache
+ganache
 ```
 
-2. Install dependencies:
+- Copy the first two private keys displayed in the Ganache CLI output
+
+### 2. MetaMask Setup
+
+1. Add Local Network to MetaMask:
+   - Network Name: Localhost 8545
+   - New RPC URL: http://127.0.0.1:8545
+   - Chain ID: 1337
+   - Currency Symbol: ETH
+
+2. Import Accounts:
+   - Click on "Import Account" in MetaMask
+   - Paste the first private key from Ganache
+   - Repeat for the second private key
+
+### 3. Project Setup
+
 ```bash
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
+# Install dependencies
+npm install
+
+# Deploy contracts
+truffle migrate --reset --network development
+
+# Copy contract artifacts
+# Copy the following files from build/contracts to frontend/src/contracts:
+# - Forwarder.json
+# - TestToken.json
 ```
 
-3. Set up environment variables:
-Create a `.env` file with your VirusTotal API key:
-```
-VIRUSTOTAL_API_KEY=your_api_key_here
-```
+Important: Note down the deployed contract addresses for:
+- TestToken contract
+- Forwarder contract
 
-## Usage
+### 4. Frontend Setup
 
-```python
-from threat_intel_extractor import ThreatIntelExtractor
+```bash
+# Navigate to frontend directory
+cd frontend
 
-# Initialize the extractor
-extractor = ThreatIntelExtractor()
+# Install dependencies
+npm install
 
-# Process a threat report
-report_text = "Your threat report text here..."
-results = extractor.process_report(report_text)
-print(results)
+# Start development server
+npm run dev
 ```
 
-## Dependencies
+### 5. Using the Application
 
-- spacy
-- requests
-- python-dotenv
-- re (built-in)
-- json (built-in)
+1. Connect Accounts:
+   - Connect both MetaMask accounts to the frontend
+   - First account will be the sender
+   - Second account will be the recipient
 
-## Limitations and Future Improvements
+2. Token Transfer Process:
+   - From sender account:
+     - Enter recipient address
+     - Enter amount of TEST tokens
+     - Sign the permit
+   - Switch to recipient account:
+     - Execute the transfer
+     - Confirm the transaction (recipient pays gas)
 
-1. The current MITRE ATT&CK mapping is simplified and could be expanded
-2. Natural language processing could be improved with custom training
-3. Additional IoC types could be added
-4. More threat intelligence sources could be integrated
-5. Performance optimization for large reports
+## Contract Addresses
 
-## Contributing
+After deployment, update the following addresses in your frontend configuration:
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+- TestToken: `<YOUR_TEST_TOKEN_ADDRESS>`
+- Forwarder: `<YOUR_FORWARDER_ADDRESS>`
+
+## Testing
+
+```bash
+# Run tests
+truffle test
 ```
 
-This solution provides:
-1. A complete Python implementation with modular design
-2. Integration with VirusTotal API for malware enrichment
-3. Comprehensive IoC extraction using regex patterns
-4. MITRE ATT&CK framework integration
-5. Natural language processing using spaCy
-6. Clear documentation and usage examples
-7. Error handling and type hints
-8. Environment variable support for API keys
+## Security Considerations
 
-The code can be further enhanced by:
-1. Adding more comprehensive MITRE ATT&CK mappings
-2. Implementing custom NER models for better entity recognition
-3. Adding more threat intelligence sources
-4. Implementing caching for API calls
-5. Adding unit tests
-6. Implementing more sophisticated text preprocessing
+- Always verify the permit data before signing
+- Check token allowances and balances
+- Verify contract addresses
+- Never share private keys
+
+## Troubleshooting
+
+1. **MetaMask Connection Issues**:
+   - Ensure you're connected to the correct network
+   - Reset MetaMask account if transactions are stuck
+
+2. **Transaction Failures**:
+   - Check gas limits
+   - Verify token balances
+   - Ensure permit hasn't expired
