@@ -7,21 +7,43 @@ npx hardhat node --port 8546
 (for localSepolia)
 
 3)
-npx hardhat run scripts/deploy.js --network localAmoy
+npx hardhat run scripts/deployAmoy.js --network localAmoy
 
 4)
-npx hardhat run scripts/deploy.js --network localSepolia
+npx hardhat run scripts/deploySepolia.js --network localSepolia
 
 5)
 npx hardhat console --network localAmoy
-const token = await ethers.getContractAt("ERC20", "0x5FbDB2315678afecb367f032d93F642f64180aa3"); //localAmoy token address
-const bridge = await ethers.getContractAt("Bridge", "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512");  //localAmoy bridge address
+const token = await ethers.getContractAt("ERC20", "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"); //localAmoy token address
+const bridge = await ethers.getContractAt("BridgeAmoy", "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0");  //localAmoy bridge address
 await token.approve(bridge.target, ethers.parseEther("10"));  // Approving 10 tokens
 await bridge.lock(ethers.parseEther("10")); // Lock 1o tokens
 
+const sender = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"; // Replace with sender's address
+const balance = await token.balanceOf(sender);
+console.log(`Sender's balance on localAmoy: ${ethers.formatEther(balance)}`);
+
 6)
 npx hardhat console --network localSepolia
-const bridge = await ethers.getContractAt("Bridge", "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"); //localSepolia bridge address
-const [deployer] = await ethers.getSigners();
-console.log(deployer.address); //0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-await bridge.release("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", ethers.parseEther("10")); //Release 10 tokens
+const bridge = await ethers.getContractAt("BridgeSepolia", "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"); //localSepolia bridge address
+await bridge.release("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266", ethers.parseEther("10")); //Release 10 tokens for any address from the chain
+
+const token = await ethers.getContractAt("ERC20", "0x5FbDB2315678afecb367f032d93F642f64180aa3"); // Token address
+const receiver = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"; // Replace with receiver's address (same address jis se release kara tha)
+const balance = await token.balanceOf(receiver);
+console.log(`Receiver's balance on localSepolia: ${ethers.formatEther(balance)}`);
+
+7)
+npx hardhat console --network localSepolia 
+await token.approve(bridge, 10);
+await bridge.burn(10);
+
+const balance = await token.balanceOf(sender);
+console.log(`Sender's balance on localAmoy: ${ethers.formatEther(balance)}`);
+
+8)
+npx hardhat console --network localAmoy
+await bridge.unlock(sender, 10);
+
+const balance = await token.balanceOf(receiver);
+console.log(`Receiver's balance on localSepolia: ${ethers.formatEther(balance)}`);

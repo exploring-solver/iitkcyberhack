@@ -1,0 +1,39 @@
+// On LocalAmoy
+npx hardhat console --network localAmoy
+
+// Get contract instances
+const nft = await ethers.getContractAt("NativeNFT", "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"); // localAmoy NFT address
+const bridge = await ethers.getContractAt("BridgeAmoyNFT", "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"); // localAmoy bridge address
+
+// First, let's get the bridge to mint an NFT for us
+// You need to be the bridge owner to do this
+const [signer] = await ethers.getSigners();
+const userAddress = await signer.getAddress(); // This will be your address
+await bridge.mint(userAddress); // This will mint NFT with ID 1
+const tokenId = 1;
+
+// Approve bridge to transfer your NFT
+await nft.approve(bridge.target, tokenId);
+
+// Lock the NFT in the bridge
+await bridge.lock(tokenId);
+
+// Check ownership (should be bridge address)
+const owner = await nft.ownerOf(tokenId);
+console.log(`NFT ${tokenId} owner on localAmoy: ${owner}`);
+
+// On LocalSepolia
+npx hardhat console --network localSepolia
+
+// Get contract instances
+const bridge = await ethers.getContractAt("BridgeSepoliaNFT", "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"); // localSepolia bridge address
+
+// Release the wrapped NFT to the user
+await bridge.release(userAddress, tokenId);
+
+// Get wrapped NFT instance
+const wrappedNFT = await ethers.getContractAt("WrappedNFT", "0x5FbDB2315678afecb367f032d93F642f64180aa3"); // Wrapped NFT address
+
+// Check ownership of wrapped NFT
+const newOwner = await wrappedNFT.ownerOf(tokenId);
+console.log(`Wrapped NFT ${tokenId} owner on localSepolia: ${newOwner}`);
