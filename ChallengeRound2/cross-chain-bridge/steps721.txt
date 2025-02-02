@@ -1,3 +1,4 @@
+npx hardhat run scripts/deployAmoyNFT.js --network localAmoy
 // On LocalAmoy
 npx hardhat console --network localAmoy
 
@@ -23,6 +24,7 @@ const owner = await nft.ownerOf(tokenId);
 console.log(`NFT ${tokenId} owner on localAmoy: ${owner}`);
 
 // On LocalSepolia
+npx hardhat run scripts/deploySepoliaNFT.js --network localSepolia
 npx hardhat console --network localSepolia
 
 // Get contract instances
