@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import { Navbar } from './components/Navbar';
+import { Navbar } from '../../ChallengeRound2/cross-chain-bridge/ui/src/components/Navbar';
 import { HomePage } from './pages/HomePage';
 import { TransactionsPage } from './pages/TransactionsPage';
 import { AuthPage } from './pages/AuthPage';
