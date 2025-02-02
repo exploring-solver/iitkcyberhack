@@ -1,35 +1,57 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { 
+  Container, 
+  Box, 
+  Typography, 
+  Tab, 
+  Tabs,
+  AppBar,
+  CircularProgress
+} from '@mui/material';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import TokenBridge from './components/TokenBridge';
+import NFTBridge from './components/NFTBridge';
+import ConnectWallet from './components/ConnectWallet';
+import { Web3Provider } from './context/Web3Context';
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [tabValue, setTabValue] = useState(0);
+
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <ThemeProvider theme={darkTheme}>
+      <Web3Provider>
+        <Container maxWidth="lg">
+          <Box sx={{ flexGrow: 1, mt: 4 }}>
+            <Typography variant="h4" component="h1" gutterBottom align="center" className='text-white'>
+              Cross-Chain Bridge
+            </Typography>
+            
+            <ConnectWallet />
+
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+              <Tabs value={tabValue} onChange={handleTabChange} centered>
+                <Tab label="Token Bridge" />
+                <Tab label="NFT Bridge" />
+              </Tabs>
+            </Box>
+
+            {tabValue === 0 && <TokenBridge />}
+            {tabValue === 1 && <NFTBridge />}
+          </Box>
+        </Container>
+      </Web3Provider>
+    </ThemeProvider>
+  );
 }
 
-export default App
+export default App;
