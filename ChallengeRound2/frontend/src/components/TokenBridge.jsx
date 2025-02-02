@@ -15,6 +15,9 @@ import {
 import { useWeb3 } from '../context/Web3Context';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { ethers } from 'ethers';
+import { motion } from 'framer-motion';
+import styled from '@emotion/styled';
+import { AnimatePresence } from 'framer-motion';
 
 // Import your ABIs and contract addresses here
 import { 
@@ -28,6 +31,39 @@ import BridgeSepolia from '../contracts/abis/BridgeSepolia.json';
 import Token from '../contracts/abis/Token.json';
 import WrappedToken from '../contracts/abis/WrappedToken.json';
 
+const StyledCard = styled(motion.div)`
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+`;
+
+const GlowingButton = styled(Button)`
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(45deg, #6d28d9, #7c3aed);
+  &:before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.3) 0%,
+      transparent 70%
+    );
+    transform: rotate(45deg);
+    animation: glowingEffect 3s infinite;
+  }
+  @keyframes glowingEffect {
+    0% { transform: rotate(45deg) translateX(-100%); }
+    100% { transform: rotate(45deg) translateX(100%); }
+  }
+`;
 
 function TokenBridge() {
   const { 
@@ -132,16 +168,46 @@ function TokenBridge() {
   const isAmoyChain = chainId === AMOY_CHAIN_ID;
   const isSepoliaChain = chainId === SEPOLIA_CHAIN_ID;
 
+  const containerVariants = {
+    initial: { opacity: 0, scale: 0.95 },
+    animate: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        duration: 0.5,
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 }
+  };
+
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h5" gutterBottom align="center">
+    <StyledCard
+      initial="initial"
+      animate="animate"
+      variants={containerVariants}
+    >
+      <motion.div variants={itemVariants}>
+        <Typography variant="h5" gutterBottom align="center" 
+          sx={{ 
+            background: 'linear-gradient(45deg, #6d28d9, #7c3aed)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontWeight: 'bold'
+          }}
+          
+        >
           Cross-Chain Token Bridge
         </Typography>
+      </motion.div>
 
-        {/* Contract Addresses */}
+      <motion.div variants={itemVariants}>
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" gutterBottom className='text-white'>
             Contract Addresses
           </Typography>
           <Grid container spacing={2}>
@@ -179,10 +245,9 @@ function TokenBridge() {
             </Grid>
           </Grid>
         </Box>
+      </motion.div>
 
-        <Divider sx={{ my: 3 }} />
-
-        {/* Balance Display */}
+      <motion.div variants={itemVariants}>
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={6}>
             <Paper elevation={3} sx={{ p: 2, textAlign: 'center' }}>
@@ -205,10 +270,30 @@ function TokenBridge() {
             </Paper>
           </Grid>
         </Grid>
+      </motion.div>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+          </motion.div>
+        )}
+        {success && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      <motion.div variants={itemVariants}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <TextField
             label="Amount to Bridge"
@@ -227,7 +312,7 @@ function TokenBridge() {
 
           <Grid container spacing={2}>
             <Grid item xs={6}>
-              <Button
+              <GlowingButton
                 variant="contained"
                 onClick={handleBridgeToSepolia}
                 disabled={!account || loading || !isAmoyChain || !amount || !amoyTokenAddress || !amoyBridgeAddress}
@@ -239,7 +324,7 @@ function TokenBridge() {
                 ) : (
                   'Lock on Amoy'
                 )}
-              </Button>
+              </GlowingButton>
             </Grid>
             <Grid item xs={6}>
               <Button
@@ -258,7 +343,6 @@ function TokenBridge() {
             </Grid>
           </Grid>
 
-          {/* Network Requirements Notice */}
           {account && !isAmoyChain && !isSepoliaChain && (
             <Alert severity="warning">
               Please switch to either Amoy or Sepolia network to use the bridge.
@@ -277,8 +361,8 @@ function TokenBridge() {
             </Alert>
           )}
         </Box>
-      </CardContent>
-    </Card>
+      </motion.div>
+    </StyledCard>
   );
 }
 
