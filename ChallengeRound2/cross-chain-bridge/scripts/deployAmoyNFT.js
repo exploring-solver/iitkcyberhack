@@ -1,19 +1,19 @@
-// deployAmoyNFT.js
 require("dotenv").config();
 const { ethers } = require("hardhat");
 
 async function main() {
-    const [deployer] = await ethers.getSigners();
+    const signers = await ethers.getSigners();
+    const deployer = signers[0];
     console.log(`Deploying NFT contracts on LocalAmoy with account: ${deployer.address}`);
 
-    // Deploy Native NFT on LocalAmoy
+    // Deploy Native NFT
     const NativeNFT = await ethers.getContractFactory("NativeNFT");
     const nativeNFT = await NativeNFT.deploy("Native NFT", "NNFT", deployer.address);
     await nativeNFT.waitForDeployment();
     const nativeNFTAddress = await nativeNFT.getAddress();
     console.log(`Native NFT deployed at: ${nativeNFTAddress}`);
 
-    // Deploy Bridge on LocalAmoy
+    // Deploy Bridge
     const Bridge = await ethers.getContractFactory("BridgeAmoyNFT");
     const bridge = await Bridge.deploy(nativeNFTAddress, deployer.address);
     await bridge.waitForDeployment();
@@ -23,6 +23,21 @@ async function main() {
     // Set bridge as NFT owner
     await nativeNFT.transferOwnership(bridgeAddress);
     console.log("Bridge set as NFT owner on LocalAmoy");
+
+    // Mint NFTs to test accounts on local network
+    const network = await ethers.provider.getNetwork();
+    if (network.chainId === 31337) { // Check if we're on local hardhat network
+        console.log("\nMinting test NFTs to accounts...");
+        
+        // Mint one NFT to each of the top 5 accounts
+        for (let i = 1; i <= 5; i++) {
+            if (signers[i]) {
+                const tx = await bridge.mint(signers[i].address);
+                await tx.wait();
+                console.log(`Minted NFT to ${signers[i].address}`);
+            }
+        }
+    }
 }
 
 main().catch((error) => {
