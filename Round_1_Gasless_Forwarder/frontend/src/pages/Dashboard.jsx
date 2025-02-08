@@ -12,8 +12,6 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { Web3Context } from '../context/Web3Context';
-import { isAddress } from 'web3-utils';
-import { ethers } from 'ethers';
 import TestToken from '../contracts/TestToken.json';
 
 export default function Dashboard() {
@@ -47,7 +45,7 @@ export default function Dashboard() {
       // Check token balance
       const balance = await tokenContract.methods.balanceOf(account).call();
       const amount = web3.utils.toWei(formData.amount.toString(), 'ether');
-      
+
       if (BigInt(amount) > BigInt(balance)) {
         throw new Error('Insufficient token balance');
       }
@@ -110,9 +108,9 @@ export default function Dashboard() {
         to: formData.recipient,
         amount: amount,
         deadline: deadline,
-        v: v,
-        r: r,
-        s: s
+        v: Number(v),             // Ensure v is a number
+        r: r,                     // Should be 32 bytes
+        s: s                      // Should be 32 bytes
       };
 
       setPermitData(permitInfo);
@@ -120,7 +118,7 @@ export default function Dashboard() {
         type: 'success',
         message: 'Permit signed! Share the permit data with the recipient.'
       });
-      
+
     } catch (error) {
       console.error('Signing failed:', error);
       setStatus({
@@ -145,9 +143,9 @@ export default function Dashboard() {
       console.log('Permit data:', permitData);
 
       // Check if current account is recipient
-      if (account.toLowerCase() !== permitData.to.toLowerCase()) {
-        throw new Error('Only the recipient can execute the transfer');
-      }
+      // if (account.toLowerCase() !== permitData.to.toLowerCase()) {
+      //   throw new Error('Only the recipient can execute the transfer');
+      // }
 
       // Check if permit hasn't expired
       const currentTimestamp = Math.floor(Date.now() / 1000);
@@ -164,7 +162,7 @@ export default function Dashboard() {
       // Convert to BigInt for comparison
       const balanceBigInt = BigInt(balance);
       const amountBigInt = BigInt(permitData.amount);
-      
+
       if (balanceBigInt < amountBigInt) {
         throw new Error('Insufficient token balance');
       }
@@ -176,10 +174,17 @@ export default function Dashboard() {
       console.log('Current allowance:', allowance);
 
       // Convert deadline to number if it's a BigInt
-      const deadlineValue = typeof permitData.deadline === 'bigint' 
-        ? Number(permitData.deadline) 
+      const deadlineValue = typeof permitData.deadline === 'bigint'
+        ? Number(permitData.deadline)
         : permitData.deadline;
-
+      console.log('Signature components:', {
+        v: permitData.v,
+        r: permitData.r,
+        s: permitData.s,
+        vType: typeof permitData.v,
+        rType: typeof permitData.r,
+        sType: typeof permitData.s
+      });
       // Get gas estimate
       const gasEstimate = await forwarder.methods
         .forwardERC20TransferWithPermit(
@@ -207,11 +212,11 @@ export default function Dashboard() {
           permitData.to,
           permitData.amount.toString(),
           deadlineValue,
-          permitData.v,
-          permitData.r,
-          permitData.s
+          permitData.v,          // Make sure this is a number
+          permitData.r,          // Should be 32 bytes
+          permitData.s           // Should be 32 bytes
         )
-        .send({ 
+        .send({
           from: account,
           gas: gasLimit
         });
@@ -222,11 +227,11 @@ export default function Dashboard() {
         type: 'success',
         message: 'Transfer completed successfully!'
       });
-      
+
     } catch (error) {
       console.error('Transfer execution failed:', error);
       // Extract more detailed error message if available
-      const errorMessage = error.message.includes('execution reverted') 
+      const errorMessage = error.message.includes('execution reverted')
         ? error.message.split('execution reverted:')[1].trim()
         : error.message;
       setStatus({
