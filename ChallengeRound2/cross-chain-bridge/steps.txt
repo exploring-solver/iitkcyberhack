@@ -3,7 +3,7 @@ npx hardhat node --port 8545
 (for localAmoy)
 
 2)
-npx hardhat node --port 8546 
+npx hardhat node --port 8546 --config hardhat.sepolia.config.js
 (for localSepolia)
 
 3)

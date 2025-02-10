@@ -1,15 +1,14 @@
 // require("@nomicfoundation/hardhat-toolbox");
-// require("dotenv").config();
 
 // module.exports = {
 //     networks: {
-//         amoy: {
-//             url: process.env.AMOY_RPC,
-//             accounts: [process.env.PRIVATE_KEY],
+//         localAmoy: {
+//             url: "http://127.0.0.1:8545",
+//             accounts: ["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"], // Pick from 'npx hardhat node' accounts
 //         },
-//         sepolia: {
-//             url: process.env.SEPOLIA_RPC,
-//             accounts: [process.env.PRIVATE_KEY],
+//         localSepolia: {
+//             url: "http://127.0.0.1:8546",
+//             accounts: ["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
 //         },
 //     },
 //     solidity: "0.8.20",
@@ -21,10 +20,12 @@ module.exports = {
     networks: {
         localAmoy: {
             url: "http://127.0.0.1:8545",
-            accounts: ["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"], // Pick from 'npx hardhat node' accounts
+            chainId: 31337, // This matches 0x7A69 in the Web3Context
+            accounts: ["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
         },
         localSepolia: {
             url: "http://127.0.0.1:8546",
+            chainId: 31338, // This matches 0x7A6A in the Web3Context
             accounts: ["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
         },
     },

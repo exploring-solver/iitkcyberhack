@@ -40,4 +40,9 @@ contract BridgeSepolia is Ownable {
         IERC20Burnable(address(wrappedToken)).burn(address(this), amount); // Burn wrapped tokens
         emit Burned(msg.sender, amount);
     }
+
+    // ✅ Function to mint Wrapped Tokens via the bridge
+    function mintWrappedToken(address to, uint256 amount) external onlyOwner {
+        wrappedToken.mint(to, amount);
+    }
 }
