@@ -11,7 +11,8 @@
   "license": "ISC",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "hardhat": "^2.22.18"
+    "hardhat": "^2.22.18",
+    "truffle": "^5.11.5"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.2.0",

@@ -25,20 +25,25 @@ async function main() {
     console.log("Bridge set as token owner on LocalAmoy.");
 
     // Distribute tokens to test accounts
-    const network = await ethers.provider.getNetwork();
-    if (network.chainId === 31337) { // Check if we're on local hardhat network
-        console.log("\nDistributing test tokens to accounts...");
-        const mintAmount = ethers.parseEther("1000"); // 1000 tokens
+    // const network = await ethers.provider.getNetwork();
+    // if (network.chainId === 31337) { // Check if we're on local hardhat network
+    console.log("\nDistributing test tokens to accounts...");
+    // const mintAmount = ethers.parseEther("1000"); // 1000 tokens
 
-        // Transfer tokens to top 5 accounts
-        for (let i = 1; i <= 5; i++) {
-            if (signers[i]) {
-                const tx = await token.transfer(signers[i].address, mintAmount);
-                await tx.wait();
-                console.log(`Transferred ${ethers.formatEther(mintAmount)} tokens to ${signers[i].address}`);
-            }
-        }
-    }
+    // Transfer tokens to top 5 accounts
+    // for (let i = 1; i <= 5; i++) {
+    //     if (signers[i]) {
+    //         const tx = await token.transfer(signers[i].address, mintAmount);
+    //         await tx.wait();
+    //         console.log(`Transferred ${ethers.formatEther(mintAmount)} tokens to ${signers[i].address}`);
+    //     }
+    // }
+    const mintAmount = ethers.parseEther("1000000"); // Give all to deployer because signers array only has 1 signer and not multiple signers
+    const tx = await token.transfer(deployer.address, mintAmount);
+    await tx.wait();
+
+    console.log(`✅ Transferred ${ethers.formatEther(mintAmount)} tokens to deployer: ${deployer.address}`);
+    // }
 }
 
 main().catch((error) => {
