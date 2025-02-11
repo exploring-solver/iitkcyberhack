@@ -14,6 +14,8 @@ import {
     Alert,
 } from '@mui/material';
 
+import { CONTRACT_ADDRESSES } from './context/ContractContext';
+
 const App = () => {
     const { account, chainId, contracts, connectWallet, switchNetwork } = useWeb3();
     const [amount, setAmount] = useState('');
@@ -31,10 +33,16 @@ const App = () => {
     // Add near your other state declarations
     const [isBalanceLoading, setIsBalanceLoading] = useState(false);
 
+    const [isTransferring, setIsTransferring] = useState(false);  // so that while transferring, fetchBalance doesnt again get executed
+
     // Existing states...
     const [tokenId, setTokenId] = useState(''); // New state for NFT tokenId
     const [transferType, setTransferType] = useState('token'); // 'token' or 'nft'
     const [ownedNFTs, setOwnedNFTs] = useState([]); // New state for owned NFTs
+
+    // for transaction history
+    const [transactions, setTransactions] = useState([]);
+    const [isLoadingTx, setIsLoadingTx] = useState(false);
 
     const NETWORKS = {
         amoy: {
@@ -58,6 +66,7 @@ const App = () => {
     const handleTransfer = async () => {
         try {
             setLoading(true);
+            setIsTransferring(true); // Set at start of transfer so that no fetBalance or fetchNFT is accidentally called due to changing states
             resetMessages();
 
             if (!account) {
@@ -125,6 +134,10 @@ const App = () => {
                             if (currentChainId.toUpperCase() !== targetChainId.toUpperCase()) {
                                 throw new Error('Network switch failed. Please switch to Sepolia network manually.');
                             }
+
+                            // Update source chain to match current network
+                            setSourceChain('sepolia');
+                            setTargetChain('amoy');
                             
                             // Step 4: Release wrapped tokens
                             console.log('Releasing wrapped tokens...');
@@ -133,14 +146,81 @@ const App = () => {
                                 amountInWei
                             ).send({ from: account });
                             console.log('Wrapped tokens released');
+
+                            // Fetch new balance on Sepolia
+                            setIsTransferring(false);
+                            await fetchBalance();
+
                         } catch (switchError) {
                             console.error('Network switch error:', switchError);
                             setError('Please switch to Sepolia network manually and try releasing tokens again.');
                             return;
                         }
                     } else {
-                        // Similar logic for Sepolia to Amoy...
-                        // (Add the same network switching improvements here)
+                        // Sepolia to Amoy transfer
+                        console.log('Starting Sepolia to Amoy transfer...');
+                        
+                        // Get contract addresses
+                        const bridgeAddress = await contracts.sepolia.bridge._address;
+                        console.log('Bridge address:', bridgeAddress);
+                    
+                        // Step 1: Approve wrapped tokens for burning
+                        console.log('Approving wrapped tokens...');
+                        const approveTx = await contracts.sepolia.token.methods.approve(
+                            bridgeAddress,
+                            amountInWei
+                        ).send({ from: account });
+                        console.log('Wrapped tokens approved');
+                    
+                        // Step 2: Burn wrapped tokens
+                        console.log('Burning wrapped tokens...');
+                        const burnTx = await contracts.sepolia.bridge.methods.burn(amountInWei)
+                            .send({ from: account });
+                        console.log('Wrapped tokens burned');
+                    
+                        // Step 3: Switch network to Amoy with delay
+                        console.log('Switching to Amoy network...');
+                        
+                        // Add a delay before switching networks
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        
+                        try {
+                            await switchNetwork('amoy');
+                            
+                            // Add another delay after network switch
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                            
+                            // Verify we're on the correct network
+                            const currentChainId = await window.ethereum.request({ 
+                                method: 'eth_chainId' 
+                            });
+                            const targetChainId = NETWORKS.amoy.chainId;
+                            
+                            if (currentChainId.toUpperCase() !== targetChainId.toUpperCase()) {
+                                throw new Error('Network switch failed. Please switch to Amoy network manually.');
+                            }
+
+                            // Update source chain to match current network
+                            setSourceChain('amoy');
+                            setTargetChain('sepolia');
+                            
+                            // Step 4: Unlock original tokens
+                            console.log('Unlocking original tokens...');
+                            const unlockTx = await contracts.amoy.bridge.methods.unlock(
+                                receiverAddress,
+                                amountInWei
+                            ).send({ from: account });
+                            console.log('Original tokens unlocked');
+
+                            // Fetch new balance on Amoy
+                            setIsTransferring(false);
+                            await fetchBalance();
+
+                        } catch (switchError) {
+                            console.error('Network switch error:', switchError);
+                            setError('Please switch to Amoy network manually and try unlocking tokens.');
+                            return;
+                        }
                     }
             
                     setSuccess('Transfer completed successfully!');
@@ -152,6 +232,7 @@ const App = () => {
                     setError(err.message || 'An error occurred during transfer');
                 } finally {
                     setLoading(false);
+                    setIsTransferring(false); // Clear at end of transfer
                 }
             } else {
                 // NFT transfer logic
@@ -187,6 +268,10 @@ const App = () => {
                         if (currentChainId.toUpperCase() !== NETWORKS.sepolia.chainId.toUpperCase()) {
                             throw new Error('Network switch failed');
                         }
+
+                        // Update source chain to match current network
+                        setSourceChain('sepolia');
+                        setTargetChain('amoy');
                         
                         // Step 4: Release NFT
                         console.log('Releasing NFT...');
@@ -194,6 +279,11 @@ const App = () => {
                             receiverAddress,
                             tokenId
                         ).send({ from: account });
+                        console.log('NFT released on Sepolia');
+
+                        // Fetch new NFT balance on Sepolia
+                        setIsTransferring(false);
+                        await fetchOwnedNFTs();
                         
                     } catch (switchError) {
                         console.error('Network switch error:', switchError);
@@ -203,12 +293,21 @@ const App = () => {
                 } else {
                     console.log('Starting NFT transfer from Sepolia to Amoy...');
                     
-                    // Step 1: Burn wrapped NFT
+                    // Step 1: First approve the bridge to handle the NFT
+                    console.log('Approving NFT transfer...');
+                    await contracts.sepolia.nft.methods.approve(
+                        contracts.sepolia.nftBridge._address,
+                        tokenId
+                    ).send({ from: account });
+                    console.log('NFT approved for bridge');
+                    
+                    // Step 2: Burn wrapped NFT
                     console.log('Burning wrapped NFT...');
                     await contracts.sepolia.nftBridge.methods.burn(tokenId)
                         .send({ from: account });
+                    console.log('Wrapped NFT burned');
                     
-                    // Step 2: Switch network
+                    // Step 3: Switch network
                     console.log('Switching to Amoy...');
                     await new Promise(resolve => setTimeout(resolve, 2000));
                     
@@ -224,13 +323,22 @@ const App = () => {
                         if (currentChainId.toUpperCase() !== NETWORKS.amoy.chainId.toUpperCase()) {
                             throw new Error('Network switch failed');
                         }
+
+                        // Update source chain to match current network
+                        setSourceChain('amoy');
+                        setTargetChain('sepolia');
                         
-                        // Step 3: Unlock original NFT
+                        // Step 4: Unlock original NFT
                         console.log('Unlocking NFT...');
                         await contracts.amoy.nftBridge.methods.unlock(
                             receiverAddress,
                             tokenId
                         ).send({ from: account });
+                        console.log('Original NFT unlocked');
+
+                        // Fetch new NFT balance on Amoy
+                        setIsTransferring(false);
+                        await fetchOwnedNFTs();
                         
                     } catch (switchError) {
                         console.error('Network switch error:', switchError);
@@ -275,24 +383,24 @@ const App = () => {
                     tokenContract: contracts[sourceChain].token
                 });
                 
-                // Wait for network switch to complete
-                const currentChainId = await window.ethereum.request({ 
-                    method: 'eth_chainId' 
-                });
-                
-                // Convert chainIds to uppercase for comparison
-                const expectedChainId = NETWORKS[sourceChain].chainId.toUpperCase();
-                const actualChainId = currentChainId.toUpperCase();
-                
-                if (actualChainId !== expectedChainId) {
-                    try {
-                        await switchNetwork(sourceChain);
-                        // Add delay after network switch
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    } catch (switchError) {
-                        console.error('Network switch error in fetchBalance:', switchError);
-                        setBalance('0');
-                        return;
+                // Only switch networks if we're not in the middle of a transfer
+                if (!isTransferring) {
+                    const currentChainId = await window.ethereum.request({ 
+                        method: 'eth_chainId' 
+                    });
+                    
+                    const expectedChainId = NETWORKS[sourceChain].chainId.toUpperCase();
+                    const actualChainId = currentChainId.toUpperCase();
+                    
+                    if (actualChainId !== expectedChainId) {
+                        try {
+                            await switchNetwork(sourceChain);
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        } catch (switchError) {
+                            console.error('Network switch error in fetchBalance:', switchError);
+                            setBalance('0');
+                            return;
+                        }
                     }
                 }
                 
@@ -324,25 +432,25 @@ const App = () => {
                 nftContract: contracts[sourceChain].nft
             });
     
-            // Wait for network switch to complete
-            const currentChainId = await window.ethereum.request({ 
-                method: 'eth_chainId' 
-            });
-            
-            // Convert chainIds to uppercase for comparison
-            const expectedChainId = NETWORKS[sourceChain].chainId.toUpperCase();
-            const actualChainId = currentChainId.toUpperCase();
-            
-            if (actualChainId !== expectedChainId) {
-                try {
-                    await switchNetwork(sourceChain);
-                    // Add delay after network switch
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                } catch (switchError) {
-                    console.error('Network switch error in fetchOwnedNFTs:', switchError);
-                    setNftBalance('0');
-                    setOwnedNFTs([]);
-                    return;
+            // Only switch networks if we're not in the middle of a transfer
+            if (!isTransferring) {
+                const currentChainId = await window.ethereum.request({ 
+                    method: 'eth_chainId' 
+                });
+                
+                const expectedChainId = NETWORKS[sourceChain].chainId.toUpperCase();
+                const actualChainId = currentChainId.toUpperCase();
+                
+                if (actualChainId !== expectedChainId) {
+                    try {
+                        await switchNetwork(sourceChain);
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    } catch (switchError) {
+                        console.error('Network switch error in fetchOwnedNFTs:', switchError);
+                        setNftBalance('0');
+                        setOwnedNFTs([]);
+                        return;
+                    }
                 }
             }
     
@@ -385,6 +493,85 @@ const App = () => {
         }
     };
 
+    const fetchTransactionHistory = async () => {
+        if (!account || !contracts) return;
+        
+        setIsLoadingTx(true);
+        try {
+            // Get all relevant events from the contracts
+            const fetchEvents = async (contract, eventName) => {
+                try {
+                    return await contract.getPastEvents(eventName, {
+                        fromBlock: 0,
+                        toBlock: 'latest'
+                    });
+                } catch (error) {
+                    console.error(`Error fetching ${eventName} events:`, error);
+                    return [];
+                }
+            };
+    
+            let allEvents = [];
+    
+            if (sourceChain === 'amoy') {
+                // Fetch token events
+                const lockEvents = await fetchEvents(contracts.amoy.bridge, 'Locked');
+                const unlockEvents = await fetchEvents(contracts.amoy.bridge, 'Unlocked');
+                
+                // Fetch NFT events
+                const nftLockEvents = await fetchEvents(contracts.amoy.nftBridge, 'Locked');
+                const nftUnlockEvents = await fetchEvents(contracts.amoy.nftBridge, 'Unlocked');
+                const mintEvents = await fetchEvents(contracts.amoy.nftBridge, 'Minted');
+    
+                allEvents = [
+                    ...lockEvents.map(e => ({ ...e, type: 'Token Lock' })),
+                    ...unlockEvents.map(e => ({ ...e, type: 'Token Unlock' })),
+                    ...nftLockEvents.map(e => ({ ...e, type: 'NFT Lock' })),
+                    ...nftUnlockEvents.map(e => ({ ...e, type: 'NFT Unlock' })),
+                    ...mintEvents.map(e => ({ ...e, type: 'NFT Mint' }))
+                ];
+            } else {
+                // Fetch Sepolia events
+                const releaseEvents = await fetchEvents(contracts.sepolia.bridge, 'Released');
+                const burnEvents = await fetchEvents(contracts.sepolia.bridge, 'Burned');
+                
+                // Fetch NFT events
+                const nftReleaseEvents = await fetchEvents(contracts.sepolia.nftBridge, 'Released');
+                const nftBurnEvents = await fetchEvents(contracts.sepolia.nftBridge, 'Burned');
+    
+                allEvents = [
+                    ...releaseEvents.map(e => ({ ...e, type: 'Token Release' })),
+                    ...burnEvents.map(e => ({ ...e, type: 'Token Burn' })),
+                    ...nftReleaseEvents.map(e => ({ ...e, type: 'NFT Release' })),
+                    ...nftBurnEvents.map(e => ({ ...e, type: 'NFT Burn' }))
+                ];
+            }
+    
+            // Filter events for the current user
+            const userEvents = allEvents.filter(event => 
+                event.returnValues.user?.toLowerCase() === account.toLowerCase()
+            );
+    
+            // Format transactions
+            const formattedTxs = userEvents.map(event => ({
+                hash: event.transactionHash,
+                blockNumber: event.blockNumber,
+                type: event.type,
+                amount: event.returnValues.amount || event.returnValues.tokenId,
+                eventName: event.event
+            }));
+    
+            // Sort by block number (descending)
+            formattedTxs.sort((a, b) => Number(b.blockNumber) - Number(a.blockNumber));
+    
+            setTransactions(formattedTxs);
+        } catch (error) {
+            console.error('Error fetching transactions:', error);
+        } finally {
+            setIsLoadingTx(false);
+        }
+    };
+
     // Token balance useEffect
     useEffect(() => {
         const init = async () => {
@@ -408,6 +595,13 @@ const App = () => {
         
         init();
     }, [account, sourceChain, contracts, transferType]); 
+
+    // Transaction History useEffect
+    useEffect(() => {
+        if (account) {
+            fetchTransactionHistory();
+        }
+    }, [account, sourceChain]);
 
     return (
         <div className="min-h-screen bg-gray-100 p-8">
@@ -475,8 +669,8 @@ const App = () => {
                                         onChange={(e) => setAmount(e.target.value)}
                                         type="number"
                                         className="mb-4"
-                                        error={Number(amount) > Number(balance)}
-                                        helperText={Number(amount) > Number(balance) ? "Insufficient balance" : ""}
+                                        error={Number(amount) > Number(balance) && !isTransferring}
+                                        helperText={Number(amount) > Number(balance) && !isTransferring ? "Insufficient balance" : ""}
                                         disabled={isBalanceLoading}
                                     />
                                 </>
@@ -584,6 +778,43 @@ const App = () => {
                                 <Alert severity="success" className="mt-4">
                                     {success}
                                 </Alert>
+                            )}
+                        </div>
+                    )}
+                    {/* Transaction History */}
+                    {account && (
+                        <div className="mt-8">
+                            <Typography variant="h6" className="mb-4">
+                                Transaction History
+                            </Typography>
+                            
+                            {isLoadingTx ? (
+                                <Alert severity="info">Loading transactions...</Alert>
+                            ) : transactions.length > 0 ? (
+                                <div className="space-y-2">
+                                    {transactions.map((tx) => (
+                                        <Card key={tx.hash} className="p-4 bg-gray-50">
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <Typography variant="subtitle2">
+                                                        {tx.type}
+                                                    </Typography>
+                                                    <Typography variant="body2" className="text-gray-600">
+                                                        {tx.type.includes('NFT') ? 
+                                                            `TokenID: ${tx.amount}` : 
+                                                            `Amount: ${Web3.utils.fromWei(tx.amount || '0', 'ether')}`
+                                                        }
+                                                    </Typography>
+                                                    <Typography variant="body2" className="text-gray-600">
+                                                        Block: {tx.blockNumber}
+                                                    </Typography>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                            ) : (
+                                <Alert severity="info">No transactions found on {sourceChain}</Alert>
                             )}
                         </div>
                     )}
