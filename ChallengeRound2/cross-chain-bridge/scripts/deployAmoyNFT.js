@@ -26,17 +26,11 @@ async function main() {
 
     // Mint NFTs to test accounts on local network
     const network = await ethers.provider.getNetwork();
-    if (network.chainId === 31337) { // Check if we're on local hardhat network
-        console.log("\nMinting test NFTs to accounts...");
-        
-        // Mint one NFT to each of the top 5 accounts
-        for (let i = 1; i <= 5; i++) {
-            if (signers[i]) {
-                const tx = await bridge.mint(signers[i].address);
-                await tx.wait();
-                console.log(`Minted NFT to ${signers[i].address}`);
-            }
-        }
+    // Mint 5 NFT to the deployer
+    for (let i = 1; i <= 5; i++) {
+        const tx = await bridge.mint(deployer.address);
+        await tx.wait();
+        console.log(`✅ Minted NFT to deployer: ${deployer.address}`);
     }
 }
 
