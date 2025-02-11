@@ -1,43 +1,53 @@
-import { useState } from 'react';
-import { useBlockchain } from '../contexts/BlockchainContext';
-import { useBalance, useToken } from 'wagmi';
+import React, { useState } from 'react';
+import { useBlockchain } from '../contexts/Web3Context';
+import { getContract } from "thirdweb";
+import { getBalance } from "thirdweb/extensions/erc20";
 
-export const TokenForm = () => {
+export default function TokenForm() {
+  const { client, account, addToken } = useBlockchain();
   const [tokenAddress, setTokenAddress] = useState('');
-  const { addCustomToken } = useBlockchain();
-  const { data: tokenInfo } = useToken({ address: tokenAddress });
-  const { data: balance } = useBalance({ address: tokenAddress });
+  const [balance, setBalance] = useState(null);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (tokenInfo) {
-      addCustomToken({
+  const fetchBalance = async () => {
+    try {
+      const contract = getContract({
+        client,
         address: tokenAddress,
-        name: tokenInfo.name,
-        symbol: tokenInfo.symbol,
-        decimals: tokenInfo.decimals
+        chain: sepolia,
       });
-      setTokenAddress('');
+
+      const tokenBalance = await getBalance({
+        contract,
+        address: account.address,
+      });
+
+      setBalance(tokenBalance);
+      addToken(tokenAddress);
+    } catch (error) {
+      console.error("Error fetching balance:", error);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 border rounded-lg">
-      <h2 className="text-xl font-bold mb-4">Add Custom Token</h2>
+    <div className="p-4 border rounded mt-4">
       <input
         type="text"
         value={tokenAddress}
         onChange={(e) => setTokenAddress(e.target.value)}
-        placeholder="Token Address"
-        className="w-full p-2 border rounded mb-2"
+        placeholder="Token Contract Address"
+        className="w-full p-2 border rounded"
       />
       <button
-        type="submit"
-        className="w-full p-2 bg-green-500 text-white rounded"
-        disabled={!tokenInfo}
+        onClick={fetchBalance}
+        className="mt-2 px-4 py-2 bg-green-500 text-white rounded"
       >
-        Add Token
+        Fetch Balance
       </button>
-    </form>
+      {balance && (
+        <p className="mt-2">
+          Balance: {balance.displayValue} {balance.symbol}
+        </p>
+      )}
+    </div>
   );
-};
+}

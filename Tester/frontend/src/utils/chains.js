@@ -1,4 +1,4 @@
-import { defineChain } from 'wagmi';
+import { de } from 'wagmi';
 
 export const sepolia = defineChain({
   id: 11155111,
