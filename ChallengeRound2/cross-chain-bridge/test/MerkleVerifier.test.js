@@ -68,8 +68,9 @@ describe("MerkleVerifier", function () {
       const newRoot = crypto.randomBytes(32);
       
       await expect(
-        merkleVerifier.connect(addr1).updateMerkleRoot(newRoot)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
-    });
+          merkleVerifier.connect(addr1).updateMerkleRoot(newRoot)
+      ).to.be.revertedWithCustomError(merkleVerifier, "OwnableUnauthorizedAccount")
+       .withArgs(addr1.address);
+  });
   });
 });

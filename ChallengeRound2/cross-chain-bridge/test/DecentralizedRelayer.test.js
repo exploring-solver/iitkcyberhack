@@ -12,6 +12,7 @@ describe("DecentralizedRelayer", function () {
   
       const DecentralizedRelayer = await ethers.getContractFactory("DecentralizedRelayer");
       decentralizedRelayer = await DecentralizedRelayer.deploy();
+      // Wait for deployment and get the deployed address
       await decentralizedRelayer.waitForDeployment();
   
       // Authorize relayer
@@ -23,12 +24,14 @@ describe("DecentralizedRelayer", function () {
         const nonce = await decentralizedRelayer.nonces(user.address);
         const data = "0x12345678";
         
-        const message = ethers.utils.keccak256(
+        // Get the deployed contract address
+        const contractAddress = await decentralizedRelayer.getAddress();
+        const message = ethers.solidityPackedKeccak256(
           ["address", "address", "bytes", "uint256", "address"],
-          [user.address, target.address, data, nonce, decentralizedRelayer.address]
+          [user.address, target.address, data, nonce, contractAddress]
         );
         
-        const signature = await user.signMessage(ethers.utils.arrayify(message));
+        const signature = await user.signMessage(ethers.getBytes(message));
   
         await expect(
           decentralizedRelayer.connect(relayer).relayTransaction(

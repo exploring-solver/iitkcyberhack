@@ -23,16 +23,16 @@ contract MerkleVerifier is Ownable {
         emit MerkleRootUpdated(oldRoot, _newRoot);
     }
     
-    function verify(bytes32[] calldata proof, bytes32 leaf) external  returns (bool) {
+    function verify(bytes32[] calldata proof, bytes32 leaf) external view returns (bool) {
         bool isValid = MerkleProof.verify(proof, merkleRoot, leaf);
-        emit LeafVerified(leaf, isValid);
+        // emit LeafVerified(leaf, isValid);
         return isValid;
     }
     
     // Batch verification for gas optimization
     function verifyMultiple(bytes32[][] calldata proofs, bytes32[] calldata leaves) 
         external 
-         
+        view
         returns (bool[] memory results) 
     {
         require(proofs.length == leaves.length, "Length mismatch");
@@ -40,7 +40,7 @@ contract MerkleVerifier is Ownable {
         
         for (uint256 i = 0; i < leaves.length; i++) {
             results[i] = MerkleProof.verify(proofs[i], merkleRoot, leaves[i]);
-            emit LeafVerified(leaves[i], results[i]);
+            // emit LeafVerified(leaves[i], results[i]);
         }
         return results;
     }
