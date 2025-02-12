@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import Web3 from 'web3';
 import { ethers } from 'ethers';
 
 // Import ABIs
@@ -10,259 +11,339 @@ import NativeNFTABI from '../contracts/NativeNFT.sol/NativeNFT.json';
 import WrappedNFTABI from '../contracts/WrappedNFT.sol/WrappedNFT.json';
 import BridgeAmoyNFTABI from '../contracts/BridgeAmoyNFT.sol/BridgeAmoyNFT.json';
 import BridgeSepoliaNFTABI from '../contracts/BridgeSepoliaNFT.sol/BridgeSepoliaNFT.json';
-import { useWeb3 } from './Web3Context';
+
+import { NETWORKS, CONTRACT_ADDRESSES } from './ContractContext';
 
 const BridgeContext = createContext();
 
-// Network configurations
-const NETWORKS = {
-    amoy: {
-        chainId: '0x7A69',
-        name: 'Amoy Network',
-        rpcUrl: 'http://localhost:8545',
-    },
-    sepolia: {
-        chainId: '0x7A6A',
-        name: 'Sepolia Network',
-        rpcUrl: 'http://localhost:8546',
-    }
-};
-
-// Contract addresses
-const CONTRACT_ADDRESSES = {
-    amoy: {
-        token: '0x7a2088a1bFc9d81c55368AE168C2C02570cB814F',
-        bridge: '0x09635F643e140090A9A8Dcd712eD6285858ceBef',
-        nft: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9',
-        nftBridge: ' 0x5eb3Bc0a489C5A8288765d2336659EbCA68FCd00',
-    },
-    sepolia: {
-        token: '0xa82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9',
-        bridge: '0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8',
-        nft: '0x99bbA657f2BbC93c02D617f8bA121cB8Fc104Acf',
-        nftBridge: '0x0E801D84Fa97b50751Dbf25036d067dCf18858bF',
-    }
-};
-
 export const BridgeProvider = ({ children }) => {
-    const { provider, signer, account, chainId, switchNetwork } = useWeb3();
-    
-    const [contracts, setContracts] = useState({
-        amoy: {
-            token: null,
-            bridge: null,
-            nft: null,
-            nftBridge: null,
-        },
-        sepolia: {
-            token: null,
-            bridge: null,
-            nft: null,
-            nftBridge: null,
+    const [state, setState] = useState({
+        account: null,
+        chainId: null,
+        web3: null,
+        isConnecting: false,
+        error: null,
+        contracts: {
+            amoy: {
+                token: null,
+                bridge: null,
+                nft: null,
+                nftBridge: null,
+            },
+            sepolia: {
+                token: null,
+                bridge: null,
+                nft: null,
+                nftBridge: null,
+            }
         }
     });
 
-    const [isInitializing, setIsInitializing] = useState(false);
-    const [bridgeError, setBridgeError] = useState(null);
+    const [sourceChain, setSourceChain] = useState('amoy');
+    const [targetChain, setTargetChain] = useState('sepolia');
+    const [isTransferring, setIsTransferring] = useState(false);
 
-    // Initialize contracts for a specific network
-    const initializeContracts = async (networkType) => {
+    const handleBridgeTransfer = async (transferType, amount, tokenId, receiverAddress) => {
         try {
-            if (!signer) return;
+            setIsTransferring(true);
 
-            const TokenABIToUse = networkType === 'amoy' ? TokenABI.abi : WrappedTokenABI.abi;
-            const BridgeABIToUse = networkType === 'amoy' ? BridgeAmoyABI.abi : BridgeSepoliaABI.abi;
-            const NFTABIToUse = networkType === 'amoy' ? NativeNFTABI.abi : WrappedNFTABI.abi;
-            const BridgeNFTABIToUse = networkType === 'amoy' ? BridgeAmoyNFTABI.abi : BridgeSepoliaNFTABI.abi;
-
-            const newContracts = {
-                token: new ethers.Contract(
-                    CONTRACT_ADDRESSES[networkType].token,
-                    TokenABIToUse,
-                    signer
-                ),
-                bridge: new ethers.Contract(
-                    CONTRACT_ADDRESSES[networkType].bridge,
-                    BridgeABIToUse,
-                    signer
-                ),
-                nft: new ethers.Contract(
-                    CONTRACT_ADDRESSES[networkType].nft,
-                    NFTABIToUse,
-                    signer
-                ),
-                nftBridge: new ethers.Contract(
-                    CONTRACT_ADDRESSES[networkType].nftBridge,
-                    BridgeNFTABIToUse,
-                    signer
-                )
-            };
-
-            setContracts(prev => ({
-                ...prev,
-                [networkType]: newContracts
-            }));
-
-            return newContracts;
-        } catch (error) {
-            console.error(`Error initializing ${networkType} contracts:`, error);
-            setBridgeError(error.message);
-            throw error;
-        }
-    };
-
-    // Initialize contracts when wallet is connected
-    useEffect(() => {
-        const init = async () => {
-            if (signer && !isInitializing) {
-                setIsInitializing(true);
-                try {
-                    await Promise.all([
-                        initializeContracts('amoy'),
-                        initializeContracts('sepolia')
-                    ]);
-                } catch (error) {
-                    console.error('Error initializing contracts:', error);
-                } finally {
-                    setIsInitializing(false);
-                }
-            }
-        };
-
-        init();
-    }, [signer]);
-
-    // Bridge transfer function
-    const handleBridgeTransfer = async (params) => {
-        const {
-            amount,
-            receiverAddress,
-            sourceChain,
-            targetChain,
-            transferType,
-            tokenId
-        } = params;
-
-        try {
-            if (!account) {
+            if (!state.account) {
                 throw new Error('Please connect your wallet');
             }
 
             if (transferType === 'token') {
-                const amountInWei = ethers.utils.parseEther(amount);
+                const amountInWei = Web3.utils.toWei(amount, 'ether');
                 
                 if (sourceChain === 'amoy') {
-                    // Approve tokens
-                    await contracts.amoy.token.approve(
-                        contracts.amoy.bridge.address,
+                    // Amoy to Sepolia token transfer
+                    const bridgeAddress = state.contracts.amoy.bridge._address;
+                    
+                    await state.contracts.amoy.token.methods.approve(
+                        bridgeAddress,
                         amountInWei
-                    );
+                    ).send({ from: state.account });
 
-                    // Lock tokens
-                    await contracts.amoy.bridge.lock(amountInWei);
+                    await state.contracts.amoy.bridge.methods.lock(amountInWei)
+                        .send({ from: state.account });
 
-                    // Switch network
-                    await switchNetwork(NETWORKS.sepolia.chainId);
+                    // Add a delay before switching networks
+                    await new Promise(resolve => setTimeout(resolve, 1000));
 
-                    // Release wrapped tokens
-                    await contracts.sepolia.bridge.release(
+                    await switchNetwork('sepolia');
+
+                    // Add a delay after switching networks
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    await state.contracts.sepolia.bridge.methods.release(
                         receiverAddress,
                         amountInWei
-                    );
+                    ).send({ from: state.account });
                 } else {
-                    // Similar logic for Sepolia to Amoy
-                    await contracts.sepolia.token.approve(
-                        contracts.sepolia.bridge.address,
-                        amountInWei
-                    );
+                    // Sepolia to Amoy token transfer
+                    const bridgeAddress = state.contracts.sepolia.bridge._address;
 
-                    await contracts.sepolia.bridge.burn(amountInWei);
-                    
-                    await switchNetwork(NETWORKS.amoy.chainId);
-                    
-                    await contracts.amoy.bridge.unlock(
+                    await state.contracts.sepolia.token.methods.approve(
+                        bridgeAddress,
+                        amountInWei
+                    ).send({ from: state.account });
+
+                    await state.contracts.sepolia.bridge.methods.burn(amountInWei)
+                        .send({ from: state.account });
+
+                    // Add a delay before switching networks
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    await switchNetwork('amoy');
+
+                    // Add a delay after switching networks
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    await state.contracts.amoy.bridge.methods.unlock(
                         receiverAddress,
                         amountInWei
-                    );
+                    ).send({ from: state.account });
                 }
             } else {
                 // NFT transfer logic
                 if (sourceChain === 'amoy') {
-                    await contracts.amoy.nft.approve(
-                        contracts.amoy.nftBridge.address,
+                    const bridgeAddress = state.contracts.amoy.nftBridge._address;
+                    
+                    await state.contracts.amoy.nft.methods.approve(
+                        bridgeAddress, 
                         tokenId
-                    );
-                    
-                    await contracts.amoy.nftBridge.lock(tokenId);
-                    
-                    await switchNetwork(NETWORKS.sepolia.chainId);
-                    
-                    await contracts.sepolia.nftBridge.release(
+                    ).send({ from: state.account });
+
+                    await state.contracts.amoy.nftBridge.methods.lock(tokenId)
+                        .send({ from: state.account });
+
+                    // Add a delay before switching networks
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    await switchNetwork('sepolia');
+
+                    // Add a delay after switching networks
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    await state.contracts.sepolia.nftBridge.methods.release(
                         receiverAddress,
                         tokenId
-                    );
+                    ).send({ from: state.account });
                 } else {
-                    await contracts.sepolia.nftBridge.burn(tokenId);
-                    
-                    await switchNetwork(NETWORKS.amoy.chainId);
-                    
-                    await contracts.amoy.nftBridge.unlock(
+                    await state.contracts.sepolia.nft.methods.approve(
+                        state.contracts.sepolia.nftBridge._address,
+                        tokenId
+                    ).send({ from: state.account });
+
+                    await state.contracts.sepolia.nftBridge.methods.burn(tokenId)
+                        .send({ from: state.account });
+
+                    // Add a delay before switching networks
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    await switchNetwork('amoy');
+
+                    // Add a delay after switching networks
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    await state.contracts.amoy.nftBridge.methods.unlock(
                         receiverAddress,
                         tokenId
-                    );
+                    ).send({ from: state.account });
                 }
             }
 
             return true;
         } catch (error) {
             console.error('Bridge transfer error:', error);
-            setBridgeError(error.message);
             throw error;
+        } finally {
+            setIsTransferring(false);
         }
     };
 
-    // Get balances for tokens and NFTs
-    const getBalances = async (address, networkType) => {
+    const switchNetwork = async (targetNetwork) => {
         try {
-            if (!contracts[networkType].token) return { tokens: '0', nfts: [] };
-
-            const tokenBalance = await contracts[networkType].token.balanceOf(address);
-            const nftBalance = await contracts[networkType].nft.balanceOf(address);
-            
-            // Fetch owned NFTs
-            const ownedNFTs = [];
-            const maxTokensToScan = 100;
-            
-            for (let i = 1; i <= maxTokensToScan; i++) {
-                try {
-                    const owner = await contracts[networkType].nft.ownerOf(i);
-                    if (owner.toLowerCase() === address.toLowerCase()) {
-                        ownedNFTs.push(i.toString());
-                    }
-                } catch (e) {
-                    continue;
-                }
+            const network = NETWORKS[targetNetwork];
+            if (!network) {
+                throw new Error(`Invalid network: ${targetNetwork}`);
             }
 
-            return {
-                tokens: ethers.formatEther(tokenBalance),
-                nfts: ownedNFTs
-            };
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: network.chainId }],
+            });
+
+            // Add mandatory delay after network switch
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Verify the switch was successful
+            const currentChainId = await window.ethereum.request({ 
+                method: 'eth_chainId' 
+            });
+            
+            if (currentChainId.toUpperCase() !== network.chainId.toUpperCase()) {
+                throw new Error('Network switch failed');
+            }
+
+            setSourceChain(targetNetwork);
+            setTargetChain(targetNetwork === 'amoy' ? 'sepolia' : 'amoy');
+
         } catch (error) {
-            console.error('Error fetching balances:', error);
-            setBridgeError(error.message);
+            if (error.code === 4902) {
+                // Network needs to be added to MetaMask
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: network.chainId,
+                        chainName: network.name,
+                        rpcUrls: [network.rpcUrl],
+                    }],
+                });
+            }
+            console.error('Network switch error:', error);
             throw error;
         }
     };
 
+    // Initialize contracts and setup event listeners
+    useEffect(() => {
+        const initializeContracts = async (web3Instance, networkType) => {
+            try {
+                const TokenABIToUse = networkType === 'amoy' ? TokenABI.abi : WrappedTokenABI.abi;
+                const BridgeABIToUse = networkType === 'amoy' ? BridgeAmoyABI.abi : BridgeSepoliaABI.abi;
+                const NFTABIToUse = networkType === 'amoy' ? NativeNFTABI.abi : WrappedNFTABI.abi;
+                const BridgeNFTABIToUse = networkType === 'amoy' ? BridgeAmoyNFTABI.abi : BridgeSepoliaNFTABI.abi;
+
+                const contracts = {
+                    token: new web3Instance.eth.Contract(
+                        TokenABIToUse,
+                        CONTRACT_ADDRESSES[networkType].token
+                    ),
+                    bridge: new web3Instance.eth.Contract(
+                        BridgeABIToUse,
+                        CONTRACT_ADDRESSES[networkType].bridge
+                    ),
+                    nft: new web3Instance.eth.Contract(
+                        NFTABIToUse,
+                        CONTRACT_ADDRESSES[networkType].nft
+                    ),
+                    nftBridge: new web3Instance.eth.Contract(
+                        BridgeNFTABIToUse,
+                        CONTRACT_ADDRESSES[networkType].nftBridge
+                    )
+                };
+
+                // Verify contracts
+                try {
+                    const tokenSymbol = await contracts.token.methods.symbol().call();
+                    console.log(`${networkType} token symbol:`, tokenSymbol);
+                } catch (error) {
+                    console.error(`Failed to verify ${networkType} contracts:`, error);
+                }
+
+                setState(prev => ({
+                    ...prev,
+                    contracts: {
+                        ...prev.contracts,
+                        [networkType]: contracts
+                    }
+                }));
+
+                return contracts;
+            } catch (error) {
+                console.error(`Error initializing ${networkType} contracts:`, error);
+                throw error;
+            }
+        };
+
+        const init = async () => {
+            if (window.ethereum) {
+                try {
+                    // Request account access
+                    const accounts = await window.ethereum.request({
+                        method: 'eth_requestAccounts'
+                    });
+
+                    // Get chainId
+                    const chainId = await window.ethereum.request({
+                        method: 'eth_chainId'
+                    });
+
+                    // Initialize Web3
+                    const web3Instance = new Web3(window.ethereum);
+
+                    setState(prev => ({
+                        ...prev,
+                        account: accounts[0],
+                        chainId,
+                        web3: web3Instance
+                    }));
+
+                    // Initialize contracts for both networks
+                    await Promise.all([
+                        initializeContracts(web3Instance, 'amoy'),
+                        initializeContracts(web3Instance, 'sepolia')
+                    ]);
+
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    setState(prev => ({
+                        ...prev,
+                        error: error.message
+                    }));
+                }
+            }
+        };
+
+        init();
+
+        // Setup event listeners
+        if (window.ethereum) {
+            const handleAccountsChanged = (accounts) => {
+                setState(prev => ({
+                    ...prev,
+                    account: accounts[0] || null
+                }));
+            };
+
+            const handleChainChanged = (chainId) => {
+                setState(prev => ({
+                    ...prev,
+                    chainId
+                }));
+            };
+
+            const handleDisconnect = () => {
+                setState(prev => ({
+                    ...prev,
+                    account: null,
+                    chainId: null,
+                    web3: null
+                }));
+            };
+
+            window.ethereum.on('accountsChanged', handleAccountsChanged);
+            window.ethereum.on('chainChanged', handleChainChanged);
+            window.ethereum.on('disconnect', handleDisconnect);
+
+            // Cleanup
+            return () => {
+                window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+                window.ethereum.removeListener('chainChanged', handleChainChanged);
+                window.ethereum.removeListener('disconnect', handleDisconnect);
+            };
+        }
+    }, []); // Empty dependency array since this should only run once on mount
+
     const value = {
-        contracts,
-        networks: NETWORKS,
-        isInitializing,
-        bridgeError,
+        ...state,
+        sourceChain,
+        targetChain,
+        isTransferring,
+        setSourceChain,
+        setTargetChain,
         handleBridgeTransfer,
-        getBalances,
-        initializeContracts
+        switchNetwork
     };
 
     return (
