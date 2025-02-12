@@ -1,0 +1,12 @@
+{
+  "network": "amoy",
+  "token": {
+    "address": "0xa3873c01A31Da848B32cb0195c49075c45057f85",
+    "name": "Native Token",
+    "symbol": "NTK"
+  },
+  "bridge": {
+    "address": "0xd5e4E3aDA303A95EbfF9592E5e5678DfB8907624"
+  },
+  "timestamp": "2025-02-12T21:18:03.983Z"
+}
