@@ -7,7 +7,7 @@ async function verify() {
     // Verify MerkleVerifier
     await hre.run("verify:verify", {
       address: deployment.merkleVerifier,
-      constructorArguments: [ethers.utils.formatBytes32String("initial")],
+      constructorArguments: [ethers.encodeBytes32String("initial")],
     });
   
     // Verify DecentralizedRelayer
