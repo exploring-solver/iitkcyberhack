@@ -25,32 +25,32 @@ const ContractVerificationApp = () => {
   useEffect(() => {
     const initializeEthereum = async () => {
       if (window.ethereum) {
-        const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+        const web3Provider = new ethers.BrowserProvider(window.ethereum);
         setProvider(web3Provider);
 
         try {
           await window.ethereum.request({ method: 'eth_requestAccounts' });
           const signer = web3Provider.getSigner();
           setSigner(signer);
-          const address = await signer.getAddress();
-          setAccount(address);
+          const address = await web3Provider.send("eth_requestAccounts", [])
+          setAccount(address)
 
           // Initialize contract instances
           setMerkleVerifier(new ethers.Contract(
             MERKLE_VERIFIER_ADDRESS,
-            MERKLE_VERIFIER_ABI,
+            MERKLE_VERIFIER_ABI.abi,
             signer
           ));
 
           setRelayer(new ethers.Contract(
             RELAYER_ADDRESS,
-            RELAYER_ABI,
+            RELAYER_ABI.abi,
             signer
           ));
 
           setBridge(new ethers.Contract(
             BRIDGE_ADDRESS,
-            BRIDGE_ABI,
+            BRIDGE_ABI.abi,
             signer
           ));
 
