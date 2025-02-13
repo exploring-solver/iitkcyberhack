@@ -1,0 +1,26 @@
+Current gas price: 1.056823995 gwei
+Deploying contracts with account: 0xD57e0418F112bf27912174Db6E53354a1661946A
+Account balance: 2.4 ETH
+
+Deploying Native Token...
+Native Token deployed at: 0xa3873c01A31Da848B32cb0195c49075c45057f85
+
+Deploying Bridge...
+Bridge deployed at: 0xd5e4E3aDA303A95EbfF9592E5e5678DfB8907624
+Bridge set as token owner on Amoy.
+
+Distributing tokens to public accounts...
+✅ Transferred 400000 NTK to account: 0xD57e0418F112bf27912174Db6E53354a1661946A
+✅ Transferred 350000 NTK to account: 0xec1FF0DD6C735F756c9360dd7F345210373E1A94
+✅ Transferred 250000 NTK to account: 0xB5F23C0Ef0d707B45a8C0f40fF27f7D945EDDd03
+✅ Transferred 100000 NTK to account: 0xf7586028E21F80EbE4aE81df2Cd9f01f155Ee4c4
+✅ Transferred 100000 NTK to account: 0xB7Cf4907313428413A0f17A3e6eA1644E0472d68
+
+Verifying token distribution
+Account balance of 0xD57e0418F112bf27912174Db6E53354a1661946A: 9200000.0 NTK
+Account balance of 0xec1FF0DD6C735F756c9360dd7F345210373E1A94: 350000.0 NTK
+Account balance of 0xB5F23C0Ef0d707B45a8C0f40fF27f7D945EDDd03: 250000.0 NTK
+Account balance of 0xf7586028E21F80EbE4aE81df2Cd9f01f155Ee4c4: 100000.0 NTK
+Account balance of 0xB7Cf4907313428413A0f17A3e6eA1644E0472d68: 100000.0 NTK
+
+Verifying contracts on Etherscan...

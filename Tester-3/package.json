@@ -1,0 +1,32 @@
+{
+  "name": "tester",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon backend/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.",
+  "dependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.2.0",
+    "chai": "^4.3.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "ethereum-waffle": "^4.0.10",
+    "ethers": "^6.13.5",
+    "express": "^4.21.2",
+    "keccak256": "^1.0.6",
+    "merkletreejs": "^0.4.1"
+  },
+  "devDependencies": {
+    "hardhat": "^2.22.18"
+  },
+  "directories": {
+    "example": "examples",
+    "test": "test"
+  }
+}

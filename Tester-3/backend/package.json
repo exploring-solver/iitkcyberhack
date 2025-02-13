@@ -1,0 +1,22 @@
+{
+  "name": "relay-merkle-sec-test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@openzeppelin/merkle-tree": "^1.0.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "keccak256": "^1.0.6",
+    "merkletreejs": "^0.4.1",
+    "mongodb": "^6.13.0",
+    "web3": "^4.16.0"
+  }
+}
