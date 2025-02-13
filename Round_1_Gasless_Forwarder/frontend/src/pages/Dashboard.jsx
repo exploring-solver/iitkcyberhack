@@ -1,16 +1,6 @@
 // Remove TransactionHistory import and all related code
-import React, { useState, useContext, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Grid,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
+import { useState, useContext } from 'react';
+
 import { Web3Context } from '../context/Web3Context';
 import TestToken from '../contracts/TestToken.json';
 
@@ -244,77 +234,90 @@ export default function Dashboard() {
   };
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Gasless Token Transfer with Permit
-      </Typography>
-      <Card>
-        <CardContent>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Token Address"
-                value={formData.tokenAddress}
-                onChange={(e) => setFormData({ ...formData, tokenAddress: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Recipient Address"
-                value={formData.recipient}
-                onChange={(e) => setFormData({ ...formData, recipient: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Amount"
-                type="number"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Button
-                variant="contained"
-                onClick={handleSignPermit}
-                disabled={loading || !account}
-                fullWidth
-              >
-                {loading ? <CircularProgress size={24} /> : 'Sign Permit'}
-              </Button>
-            </Grid>
-            {permitData && (
-              <Grid item xs={12}>
-                <Button
-                  variant="contained"
-                  onClick={handleExecuteTransfer}
-                  disabled={loading || account === permitData.from}
-                  fullWidth
-                  color="secondary"
-                >
-                  {loading ? <CircularProgress size={24} /> : 'Execute Transfer (Recipient Only)'}
-                </Button>
-              </Grid>
+    <div className="min-h-screen bg-gray-900 text-gray-100 p-8 w-full">
+      <h1 className="text-3xl font-bold mb-8">Gasless Token Transfer with Permit</h1>
+      
+      <div className="bg-gray-800 rounded-xl p-6 shadow-xl">
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">Token Address</label>
+            <input
+              className="w-full bg-gray-700 rounded-lg p-3 text-sm border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              value={formData.tokenAddress}
+              onChange={(e) => setFormData({ ...formData, tokenAddress: e.target.value })}
+              placeholder="0x..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Recipient Address</label>
+            <input
+              className="w-full bg-gray-700 rounded-lg p-3 text-sm border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              value={formData.recipient}
+              onChange={(e) => setFormData({ ...formData, recipient: e.target.value })}
+              placeholder="0x..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Amount</label>
+            <input
+              type="number"
+              className="w-full bg-gray-700 rounded-lg p-3 text-sm border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              value={formData.amount}
+              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              placeholder="0.0"
+            />
+          </div>
+
+          <button
+            onClick={handleSignPermit}
+            disabled={loading || !account}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center"
+          >
+            {loading ? (
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              'Sign Permit'
             )}
-          </Grid>
-          {status.message && (
-            <Alert severity={status.type} sx={{ mt: 2 }}>
-              {status.message}
-            </Alert>
-          )}
+          </button>
+
           {permitData && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="h6">Permit Data:</Typography>
-              <pre style={{ overflow: 'auto' }}>
+            <button
+              onClick={handleExecuteTransfer}
+              disabled={loading || account === permitData.from}
+              className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center"
+            >
+              {loading ? (
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                'Execute Transfer (Recipient Only)'
+              )}
+            </button>
+          )}
+
+          {status.message && (
+            <div className={`p-4 rounded-lg ${status.type === 'success' ? 'bg-green-900/50 border border-green-800' : 'bg-red-900/50 border border-red-800'}`}>
+              {status.message}
+            </div>
+          )}
+
+          {permitData && (
+            <div className="mt-6">
+              <h3 className="text-lg font-medium mb-3">Permit Data:</h3>
+              <pre className="bg-gray-700 p-4 rounded-lg overflow-auto text-sm max-h-96">
                 {JSON.stringify(permitData, null, 2)}
               </pre>
-            </Box>
+            </div>
           )}
-        </CardContent>
-      </Card>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }
