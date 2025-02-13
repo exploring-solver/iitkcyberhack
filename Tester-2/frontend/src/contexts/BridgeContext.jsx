@@ -46,11 +46,75 @@ export const BridgeProvider = ({ children }) => {
     const handleBridgeTransfer = async (transferType, amount, tokenId, receiverAddress) => {
         try {
             setIsTransferring(true);
-
+    
             if (!state.account) {
                 throw new Error('Please connect your wallet');
             }
 
+            // Helper function for getting the appropriate Web3 instance
+            const getWeb3ForNetwork = (network) => {
+                const rpcUrl = network === 'amoy' 
+                    ? import.meta.env.VITE_AMOY_RPC_URL 
+                    : import.meta.env.VITE_SEPOLIA_RPC_URL;
+                
+                return new Web3(new Web3.providers.HttpProvider(rpcUrl));
+            };
+    
+            // Helper function for sending transactions with proper gas settings
+            const sendTransaction = async (contract, method, network, options = {}) => {
+                try {
+                    // Get network-specific web3 instance
+                    const web3Instance = getWeb3ForNetwork(network);
+                    
+                    // Get gas price using the specific network's web3 instance
+                    const gasPrice = await web3Instance.eth.getGasPrice();
+                    console.log(`Gas price for ${network}:`, gasPrice);
+                    
+                    // Estimate gas using the contract's web3 instance (MetaMask)
+                    const gasEstimate = await method.estimateGas({ 
+                        from: state.account, 
+                        ...options 
+                    });
+                    console.log(`Gas estimate for ${network}:`, gasEstimate);
+
+                    // Send transaction using MetaMask's web3 instance
+                    return method.send({
+                        from: state.account,
+                        gas: Math.ceil(Number(gasEstimate) * 1.2),
+                        gasPrice: gasPrice,
+                        maxPriorityFeePerGas: null,
+                        maxFeePerGas: null,
+                        ...options
+                    });
+                } catch (error) {
+                    console.error(`Transaction error on ${network}:`, {
+                        message: error.message,
+                        code: error.code,
+                        data: error.data
+                    });
+                    throw error;
+                }
+            };
+        
+            // Helper function for network switching with retries
+            const switchNetworkWithRetry = async (targetNetwork) => {
+                let switchAttempts = 0;
+                const maxAttempts = 3;
+                
+                while (switchAttempts < maxAttempts) {
+                    try {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        await switchNetwork(targetNetwork);
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait after successful switch
+                        break;
+                    } catch (error) {
+                        switchAttempts++;
+                        if (switchAttempts === maxAttempts) throw error;
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    }
+                }
+            };
+    
             if (transferType === 'token') {
                 const amountInWei = Web3.utils.toWei(amount, 'ether');
                 
@@ -58,151 +122,212 @@ export const BridgeProvider = ({ children }) => {
                     // Amoy to Sepolia token transfer
                     const bridgeAddress = state.contracts.amoy.bridge._address;
                     
-                    await state.contracts.amoy.token.methods.approve(
-                        bridgeAddress,
-                        amountInWei
-                    ).send({ from: state.account });
-
-                    await state.contracts.amoy.bridge.methods.lock(amountInWei)
-                        .send({ from: state.account });
-
-                    // Add a delay before switching networks
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-
-                    await switchNetwork('sepolia');
-
-                    // Add a delay after switching networks
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-
-                    await state.contracts.sepolia.bridge.methods.release(
-                        receiverAddress,
-                        amountInWei
-                    ).send({ from: state.account });
+                    // Approve tokens
+                    await sendTransaction(
+                        state.contracts.amoy.token,
+                        state.contracts.amoy.token.methods.approve(bridgeAddress, amountInWei),
+                        'amoy'
+                    );
+    
+                    // Lock tokens
+                    await sendTransaction(
+                        state.contracts.amoy.bridge,
+                        state.contracts.amoy.bridge.methods.lock(amountInWei),
+                        'amoy'
+                    );
+    
+                    // Switch to Sepolia
+                    await switchNetworkWithRetry('sepolia');
+    
+                    // Release tokens
+                    await sendTransaction(
+                        state.contracts.sepolia.bridge,
+                        state.contracts.sepolia.bridge.methods.release(receiverAddress, amountInWei),
+                        'sepolia'
+                    );
                 } else {
                     // Sepolia to Amoy token transfer
                     const bridgeAddress = state.contracts.sepolia.bridge._address;
-
-                    await state.contracts.sepolia.token.methods.approve(
-                        bridgeAddress,
-                        amountInWei
-                    ).send({ from: state.account });
-
-                    await state.contracts.sepolia.bridge.methods.burn(amountInWei)
-                        .send({ from: state.account });
-
-                    // Add a delay before switching networks
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-
-                    await switchNetwork('amoy');
-
-                    // Add a delay after switching networks
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-
-                    await state.contracts.amoy.bridge.methods.unlock(
-                        receiverAddress,
-                        amountInWei
-                    ).send({ from: state.account });
+    
+                    // Approve tokens
+                    await sendTransaction(
+                        state.contracts.sepolia.token,
+                        state.contracts.sepolia.token.methods.approve(bridgeAddress, amountInWei),
+                        'sepolia'
+                    );
+    
+                    // Burn tokens
+                    await sendTransaction(
+                        state.contracts.sepolia.bridge,
+                        state.contracts.sepolia.bridge.methods.burn(amountInWei),
+                        'sepolia'
+                    );
+    
+                    // Switch to Amoy
+                    await switchNetworkWithRetry('amoy');
+    
+                    // Unlock tokens
+                    await sendTransaction(
+                        state.contracts.amoy.bridge,
+                        state.contracts.amoy.bridge.methods.unlock(receiverAddress, amountInWei),
+                        'amoy'
+                    );
                 }
             } else {
                 // NFT transfer logic
                 if (sourceChain === 'amoy') {
+                    // Amoy to Sepolia NFT transfer
                     const bridgeAddress = state.contracts.amoy.nftBridge._address;
                     
-                    await state.contracts.amoy.nft.methods.approve(
-                        bridgeAddress, 
-                        tokenId
-                    ).send({ from: state.account });
-
-                    await state.contracts.amoy.nftBridge.methods.lock(tokenId)
-                        .send({ from: state.account });
-
-                    // Add a delay before switching networks
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-
-                    await switchNetwork('sepolia');
-
-                    // Add a delay after switching networks
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-
-                    await state.contracts.sepolia.nftBridge.methods.release(
-                        receiverAddress,
-                        tokenId
-                    ).send({ from: state.account });
+                    // Approve NFT
+                    await sendTransaction(
+                        state.contracts.amoy.nft,
+                        state.contracts.amoy.nft.methods.approve(bridgeAddress, tokenId),
+                        'amoy'
+                    );
+    
+                    // Lock NFT
+                    await sendTransaction(
+                        state.contracts.amoy.nftBridge,
+                        state.contracts.amoy.nftBridge.methods.lock(tokenId),
+                        'amoy'
+                    );
+    
+                    // Switch to Sepolia
+                    await switchNetworkWithRetry('sepolia');
+    
+                    // Release NFT
+                    await sendTransaction(
+                        state.contracts.sepolia.nftBridge,
+                        state.contracts.sepolia.nftBridge.methods.release(receiverAddress, tokenId),
+                        'sepolia'
+                    );
                 } else {
-                    await state.contracts.sepolia.nft.methods.approve(
-                        state.contracts.sepolia.nftBridge._address,
-                        tokenId
-                    ).send({ from: state.account });
-
-                    await state.contracts.sepolia.nftBridge.methods.burn(tokenId)
-                        .send({ from: state.account });
-
-                    // Add a delay before switching networks
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-
-                    await switchNetwork('amoy');
-
-                    // Add a delay after switching networks
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-
-                    await state.contracts.amoy.nftBridge.methods.unlock(
-                        receiverAddress,
-                        tokenId
-                    ).send({ from: state.account });
+                    // Sepolia to Amoy NFT transfer
+                    const bridgeAddress = state.contracts.sepolia.nftBridge._address;
+    
+                    // Approve NFT
+                    await sendTransaction(
+                        state.contracts.sepolia.nft,
+                        state.contracts.sepolia.nft.methods.approve(bridgeAddress, tokenId),
+                        'sepolia'
+                    );
+    
+                    // Burn NFT
+                    await sendTransaction(
+                        state.contracts.sepolia.nftBridge,
+                        state.contracts.sepolia.nftBridge.methods.burn(tokenId),
+                        'sepolia'
+                    );
+    
+                    // Switch to Amoy
+                    await switchNetworkWithRetry('amoy');
+    
+                    // Unlock NFT
+                    await sendTransaction(
+                        state.contracts.amoy.nftBridge,
+                        state.contracts.amoy.nftBridge.methods.unlock(receiverAddress, tokenId),
+                        'amoy'
+                    );
                 }
             }
-
+    
             return true;
         } catch (error) {
-            console.error('Bridge transfer error:', error);
+            console.error('Bridge transfer error:', {
+                message: error.message,
+                code: error.code,
+                data: error.data,
+                stack: error.stack
+            });
             throw error;
         } finally {
             setIsTransferring(false);
         }
     };
 
-    const switchNetwork = async (targetNetwork) => {
+    const verifyNetwork = async (targetNetwork) => {
         try {
             const network = NETWORKS[targetNetwork];
             if (!network) {
                 throw new Error(`Invalid network: ${targetNetwork}`);
             }
-
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: network.chainId }],
-            });
-
-            // Add mandatory delay after network switch
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Verify the switch was successful
-            const currentChainId = await window.ethereum.request({ 
-                method: 'eth_chainId' 
-            });
-            
-            if (currentChainId.toUpperCase() !== network.chainId.toUpperCase()) {
-                throw new Error('Network switch failed');
-            }
-
-            setSourceChain(targetNetwork);
-            setTargetChain(targetNetwork === 'amoy' ? 'sepolia' : 'amoy');
-
-        } catch (error) {
-            if (error.code === 4902) {
-                // Network needs to be added to MetaMask
+    
+            try {
+                // First try switching to the network
                 await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                        chainId: network.chainId,
-                        chainName: network.name,
-                        rpcUrls: [network.rpcUrl],
-                    }],
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: network.chainId }],
                 });
+                return { success: true };
+            } catch (error) {
+                // Network needs to be added
+                if (error.code === 4902 || 
+                    error.code === -32603 || 
+                    error.message.includes('wallet_addEthereumChain')) {
+                    
+                    try {
+                        // Add the network
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: network.chainId,
+                                chainName: network.chainName,
+                                nativeCurrency: network.nativeCurrency,
+                                rpcUrls: network.rpcUrls,
+                                blockExplorerUrls: network.blockExplorerUrls
+                            }],
+                        });
+                        
+                        // Return with instructions for manual switch
+                        return { 
+                            success: false,
+                            needsManualSwitch: true,
+                            networkName: network.chainName,
+                            userMessage: `Network "${network.chainName}" has been added successfully. Please switch to it manually and refresh the page.`,
+                        };
+                    } catch (addError) {
+                        return { 
+                            success: false, 
+                            error: addError.message,
+                            userMessage: 'Failed to add network. Please try again.'
+                        };
+                    }
+                }
+                return { 
+                    success: false, 
+                    error: error.message,
+                    userMessage: 'Unable to switch network. Please try again.'
+                };
             }
-            console.error('Network switch error:', error);
+        } catch (error) {
+            return { 
+                success: false, 
+                error: error.message,
+                userMessage: 'Network verification failed. Please try again.'
+            };
+        }
+    };
+
+    const switchNetwork = async (targetNetwork) => {
+        const result = await verifyNetwork(targetNetwork);
+        
+        if (!result.success) {
+            console.error('Network switch error:', result.error);
+            const error = new Error(result.userMessage);
+            // Attach networkConfig to the error object
+            error.networkConfig = result.networkConfig;
             throw error;
         }
+    
+        // Add delay after successful switch
+        await new Promise(resolve => setTimeout(resolve, 2000));
+    
+        // Update UI state
+        setSourceChain(targetNetwork);
+        setTargetChain(targetNetwork === 'amoy' ? 'sepolia' : 'amoy');
+    
+        return result;
     };
 
     // Initialize contracts and setup event listeners

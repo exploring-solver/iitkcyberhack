@@ -14,7 +14,7 @@ const WalletConnection = () => {
 
   const getNetworkName = (chainId) => {
     switch (chainId) {
-      case '0xaa36a7': return 'Sepolia';
+      case '0xAA36A7': return 'Sepolia';
       case '0x13882': return 'Amoy';
       case '0x7a69': return 'Local Amoy';
       case '0x7a6a': return 'Local Sepolia';
