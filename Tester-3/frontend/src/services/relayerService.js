@@ -1,4 +1,4 @@
-const RELAYER_API = import.meta.env.REACT_APP_RELAYER_API || 'http://localhost:3001/api';
+const RELAYER_API = import.meta.env.VITE_RELAYER_API || 'http://localhost:3001/api';
 
 export const relayerService = {
     async requestBridgeTransfer(transferData) {

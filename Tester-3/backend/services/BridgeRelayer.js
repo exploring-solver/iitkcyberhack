@@ -2,8 +2,8 @@ const { Web3 } = require('web3');
 const { MerkleTree } = require('merkletreejs');
 const keccak256 = require('keccak256');
 const RelayerStorage = require('./RelayerStorage');
-const AmoyBridgeABI = require('../../artifacts/contracts/BridgeAmoy.sol/BridgeAmoy.json').abi;
-const SepoliaBridgeABI = require('../../artifacts/contracts/BridgeSepolia.sol/BridgeSepolia.json').abi;
+const AmoyBridgeABI = require('../artifacts/BridgeAmoy.sol/BridgeAmoy.json').abi;
+const SepoliaBridgeABI = require('../artifacts/BridgeSepolia.sol/BridgeSepolia.json').abi;
 
 class BridgeRelayer {
     constructor({ config }) {

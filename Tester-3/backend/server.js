@@ -9,7 +9,7 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-
+// require('dotenv').config()
 // Initialize relayer with correct config structure
 const relayer = new BridgeRelayer({ config });
 

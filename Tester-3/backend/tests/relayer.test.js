@@ -2,9 +2,9 @@ const { Web3 } = require('web3');
 const BridgeRelayer = require('../services/BridgeRelayer');
 const { config, NETWORKS, CONTRACT_ADDRESSES } = require('../config');
 
-const TokenABI = require('../../artifacts/contracts/Token.sol/Token.json').abi;
-const WrappedTokenABI = require('../../artifacts/contracts/WrappedToken.sol/WrappedToken.json').abi;
-const NFTTokenABI = require('../../artifacts/contracts/NativeNFT.sol/NativeNFT.json').abi;
+const TokenABI = require('../artifacts/Token.sol/Token.json').abi;
+const WrappedTokenABI = require('../artifacts/WrappedToken.sol/WrappedToken.json').abi;
+const NFTTokenABI = require('../artifacts/NativeNFT.sol/NativeNFT.json').abi;
 
 async function testRelayer() {
     console.log('Starting relayer tests...');
