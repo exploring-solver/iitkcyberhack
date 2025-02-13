@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useBridge } from '../contexts/BridgeContext';
 import { useBridgeTransactions } from '../hooks/useBridgeTransactions';
-import { useWeb3 } from '../contexts/Web3Context';
 import { NETWORKS } from '../contexts/ContractContext';
 import Web3 from 'web3';
 
@@ -19,7 +18,6 @@ const Bridge = () => {
     } = useBridge();
 
     const { transactions, loading: txLoading, fetchTransactions } = useBridgeTransactions();
-    const { provider } = useWeb3();
 
     // Form states
     const [amount, setAmount] = useState('');
@@ -35,6 +33,9 @@ const Bridge = () => {
     const [nftBalance, setNftBalance] = useState('0');
     const [ownedNFTs, setOwnedNFTs] = useState([]);
     const [isBalanceLoading, setIsBalanceLoading] = useState(false);
+
+    // Add these new states for network switching
+    const [isLoading, setIsLoading] = useState(false);
 
     const fetchBalance = async () => {
         if (!account || !contracts?.[sourceChain]?.token || isTransferring) return;
@@ -52,10 +53,22 @@ const Bridge = () => {
                 
                 if (actualChainId !== expectedChainId) {
                     try {
-                        await switchNetwork(sourceChain);
+                        setError('');
+                        setNeedsManualSwitch(false);
+                        setNetworkName('');
+                        
+                        const result = await switchNetwork(sourceChain);
+                        if (result.needsManualSwitch) {
+                            setError(result.userMessage);
+                            setNeedsManualSwitch(true);
+                            setNetworkName(result.networkName);
+                            setBalance('0');
+                            return;
+                        }
                         await new Promise(resolve => setTimeout(resolve, 2000));
                     } catch (switchError) {
                         console.error('Network switch error in fetchBalance:', switchError);
+                        setError(switchError.message);
                         setBalance('0');
                         return;
                     }
@@ -89,10 +102,23 @@ const Bridge = () => {
                 
                 if (actualChainId !== expectedChainId) {
                     try {
-                        await switchNetwork(sourceChain);
+                        setError('');
+                        setNeedsManualSwitch(false);
+                        setNetworkName('');
+                        
+                        const result = await switchNetwork(sourceChain);
+                        if (result.needsManualSwitch) {
+                            setError(result.userMessage);
+                            setNeedsManualSwitch(true);
+                            setNetworkName(result.networkName);
+                            setNftBalance('0');
+                            setOwnedNFTs([]);
+                            return;
+                        }
                         await new Promise(resolve => setTimeout(resolve, 2000));
                     } catch (switchError) {
                         console.error('Network switch error in fetchOwnedNFTs:', switchError);
+                        setError(switchError.message);
                         setNftBalance('0');
                         setOwnedNFTs([]);
                         return;
@@ -129,7 +155,33 @@ const Bridge = () => {
         }
     };
 
-    // Handle MetaMask network changes
+    const [needsManualSwitch, setNeedsManualSwitch] = useState(false);
+    const [networkName, setNetworkName] = useState('');
+    
+    const handleChainSelection = async (e) => {
+        const newNetwork = e.target.value;
+        
+        try {
+            setError('');
+            setNeedsManualSwitch(false);
+            setNetworkName('');
+            setIsLoading(true);
+            
+            const result = await switchNetwork(newNetwork);
+            
+            if (result.needsManualSwitch) {
+                setError(result.userMessage);
+                setNeedsManualSwitch(true);
+                setNetworkName(result.networkName);
+            }
+        } catch (error) {
+            setError(error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Handle transfer type changes
     useEffect(() => {
         const handleChainChanged = async (chainId) => {
             const networkMap = {
@@ -160,22 +212,6 @@ const Bridge = () => {
             };
         }
     }, [transferType]);
-
-    // Fetch balances on component mount and when dependencies change
-    useEffect(() => {
-        const init = async () => {
-            if (account && contracts?.[sourceChain] && !isTransferring) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                if (transferType === 'token') {
-                    await fetchBalance();
-                } else {
-                    await fetchOwnedNFTs();
-                }
-            }
-        };
-        
-        init();
-    }, [account, sourceChain, contracts, transferType, isTransferring]);
     
     const handleTransfer = async () => {
         if (!account) {
@@ -252,10 +288,66 @@ const Bridge = () => {
         }
     }, [account, sourceChain, fetchTransactions]);
 
+    // Effect for verifying selected network in metamask
+    useEffect(() => {
+        const verifyInitialNetwork = async () => {
+            if (!account || !contracts?.[sourceChain]) return;
+
+            try {
+                const currentChainId = await window.ethereum.request({ 
+                    method: 'eth_chainId' 
+                });
+                
+                const expectedChainId = NETWORKS[sourceChain].chainId.toUpperCase();
+                const actualChainId = currentChainId.toUpperCase();
+                
+                if (actualChainId !== expectedChainId) {
+                    try {
+                        setError('');
+                        setNeedsManualSwitch(false);
+                        setNetworkName('');
+                        
+                        const result = await switchNetwork(sourceChain);
+                        if (result.needsManualSwitch) {
+                            setError(result.userMessage);
+                            setNeedsManualSwitch(true);
+                            setNetworkName(result.networkName);
+                        }
+                    } catch (error) {
+                        setError(error.message || 'Failed to switch to the correct network');
+                    }
+                }
+            } catch (err) {
+                console.error('Initial network verification error:', err);
+                setError('Failed to verify network configuration');
+            }
+        };
+
+        verifyInitialNetwork();
+    }, [account, contracts, sourceChain]); // Run when account or contracts are initialized
+
     return (
         <div className="max-w-4xl mx-auto p-6">
             <div className="bg-white rounded-lg shadow-lg p-6">
                 <h2 className="text-2xl font-bold mb-6">Cross-Chain Bridge</h2>
+
+                {error && (
+                    <div className="p-4 bg-red-100 rounded-md">
+                        <div className="text-red-700 font-medium mb-2">Network Switch Required</div>
+                        <div className="text-red-600">{error}</div>
+                        {needsManualSwitch && (
+                            <div className="mt-4">
+                                <div className="font-medium mb-2">Please follow these steps to switch networks:</div>
+                                <ol className="list-decimal ml-4 space-y-1 text-sm">
+                                    <li>Click the network dropdown in MetaMask (top of the MetaMask window)</li>
+                                    <li>Find and select "{networkName}"</li>
+                                    <li>Click "Switch network" if prompted</li>
+                                    <li>Return to this page and continue your transaction</li>
+                                </ol>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div className="space-y-6">
                     {/* Transfer Type Selection */}
@@ -300,10 +392,8 @@ const Bridge = () => {
                             <select
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                                 value={sourceChain}
-                                onChange={(e) => {
-                                    setSourceChain(e.target.value);
-                                    setTargetChain(e.target.value === 'amoy' ? 'sepolia' : 'amoy');
-                                }}
+                                onChange={handleChainSelection}
+                                disabled={isLoading}
                             >
                                 <option value="amoy">Amoy</option>
                                 <option value="sepolia">Sepolia</option>

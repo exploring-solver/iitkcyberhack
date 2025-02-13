@@ -9,6 +9,7 @@ const NETWORK = 'sepolia'; // or 'sepolia', 'goerli', etc.
 const TransactionHistory = () => {
   const { account } = useWeb3();
   const [filter, setFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
   
   const { 
     fetchTransactions, 
@@ -47,14 +48,50 @@ const TransactionHistory = () => {
     return styles[getTransactionTypeLabel(tx)];
   };
 
-  const filteredTransactions = transactions.filter(tx => {
-    if (filter === 'sent') return tx.from.toLowerCase() === account?.toLowerCase();
-    if (filter === 'received') return tx.to?.toLowerCase() === account?.toLowerCase();
-    if (filter === 'tokens') return tx.type === 'token';
-    if (filter === 'contracts') return tx.input !== '0x' && tx.type === 'normal';
-    return true;
-  });
+  // Add a function to create a unique key for each transaction
+  const getUniqueTransactionKey = (tx) => {
+    // Combine multiple properties to ensure uniqueness
+    return `${tx.hash}-${tx.type || 'normal'}-${tx.nonce || ''}-${tx.transactionIndex || ''}-${tx.timeStamp}`;
+  };
 
+  // Deduplicate transactions based on the unique key
+  const deduplicateTransactions = (txs) => {
+    const seen = new Set();
+    return txs.filter(tx => {
+      const key = getUniqueTransactionKey(tx);
+      const isDuplicate = seen.has(key);
+      seen.add(key);
+      return !isDuplicate;
+    });
+  };
+
+  // Filter and deduplicate transactions
+  const filteredTransactions = deduplicateTransactions(
+    transactions.filter(tx => {
+      if (filter === 'sent') return tx.from.toLowerCase() === account?.toLowerCase();
+      if (filter === 'received') return tx.to?.toLowerCase() === account?.toLowerCase();
+      if (filter === 'tokens') return tx.type === 'token';
+      if (filter === 'contracts') return tx.input !== '0x' && tx.type === 'normal';
+      return true;
+    })
+  );
+
+  // Pagination logic
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
+
+  // Pagination change handlers
+  const handleNextPage = () => {
+    setCurrentPage(prevPage => Math.min(prevPage + 1, totalPages));
+  };
+
+  const handlePrevPage = () => {
+    setCurrentPage(prevPage => Math.max(prevPage - 1, 1));
+  };
+  
   return (
     <div className="p-4 bg-white shadow rounded-lg">
       <div className="flex flex-col space-y-4">
@@ -89,7 +126,10 @@ const TransactionHistory = () => {
           <div className="flex space-x-2">
             <select
               value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+              onChange={(e) => {
+                setFilter(e.target.value);
+                setCurrentPage(1); // Reset to first page when filter changes
+              }}
               className="px-3 py-2 border rounded-md"
             >
               <option value="all">All Transactions</option>
@@ -125,8 +165,8 @@ const TransactionHistory = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredTransactions.map((tx) => (
-                  <tr key={tx.hash} className="hover:bg-gray-50">
+                {paginatedTransactions.map((tx) => (
+                  <tr key={getUniqueTransactionKey(tx)} className="hover:bg-gray-50">
                     <td className="px-4 py-2 text-sm">
                       <span className={`px-2 py-1 rounded-full text-xs ${getTypeStyle(tx)}`}>
                         {getTransactionTypeLabel(tx)}
@@ -198,6 +238,32 @@ const TransactionHistory = () => {
                 ))}
               </tbody>
             </table>
+            
+            {/* Pagination Controls */}
+            {filteredTransactions.length > 0 && (
+              <div className="flex justify-between items-center mt-4 px-4">
+                <div className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+
             {filteredTransactions.length === 0 && (
               <div className="text-center py-8 text-gray-600">
                 <p>No transactions found</p>
