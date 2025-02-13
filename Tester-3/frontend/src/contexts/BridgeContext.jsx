@@ -3,14 +3,14 @@ import Web3 from 'web3';
 import { ethers } from 'ethers';
 
 // Import ABIs
-import TokenABI from '../../../artifacts/contracts/Token.sol/Token.json';
-import WrappedTokenABI from '../../../artifacts/contracts/WrappedToken.sol/WrappedToken.json';
-import BridgeAmoyABI from '../../../artifacts/contracts/BridgeAmoy.sol/BridgeAmoy.json';
-import BridgeSepoliaABI from '../../../artifacts/contracts/BridgeSepolia.sol/BridgeSepolia.json';
-import NativeNFTABI from '../../../artifacts/contracts/NativeNFT.sol/NativeNFT.json';
-import WrappedNFTABI from '../../../artifacts/contracts/WrappedNFT.sol/WrappedNFT.json';
-import BridgeAmoyNFTABI from '../../../artifacts/contracts/BridgeAmoyNFT.sol/BridgeAmoyNFT.json';
-import BridgeSepoliaNFTABI from '../../../artifacts/contracts/BridgeSepoliaNFT.sol/BridgeSepoliaNFT.json';
+import TokenABI from '../contracts/Token.sol/Token.json';
+import WrappedTokenABI from '../contracts/WrappedToken.sol/WrappedToken.json';
+import BridgeAmoyABI from '../contracts/BridgeAmoy.sol/BridgeAmoy.json';
+import BridgeSepoliaABI from '../contracts/BridgeSepolia.sol/BridgeSepolia.json';
+import NativeNFTABI from '../contracts/NativeNFT.sol/NativeNFT.json';
+import WrappedNFTABI from '../contracts/WrappedNFT.sol/WrappedNFT.json';
+import BridgeAmoyNFTABI from '../contracts/BridgeAmoyNFT.sol/BridgeAmoyNFT.json';
+import BridgeSepoliaNFTABI from '../contracts/BridgeSepoliaNFT.sol/BridgeSepoliaNFT.json';
 
 import { NETWORKS, CONTRACT_ADDRESSES } from './ContractContext';
 
