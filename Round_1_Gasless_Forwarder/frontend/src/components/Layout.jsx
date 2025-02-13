@@ -20,6 +20,8 @@ import {
   SwapHoriz as TransactionsIcon,
   Settings as SettingsIcon,
   IntegrationInstructions,
+  Leaderboard,
+  QuestionAnswer,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -33,17 +35,32 @@ export default function Layout({ children }) {
     { text: 'Transactions', icon: <TransactionsIcon />, path: '/transactions' },
     { text: 'Instructions', icon: <IntegrationInstructions />, path: '/instructions' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+    { text: 'LeaderBoard', icon: <Leaderboard />, path: '/leaderboard' },
+    { text: 'FAQs', icon: <QuestionAnswer />, path: '/faq' },
   ];
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
+      <Toolbar sx={{ 
+        backgroundColor: 'primary.dark',
+        borderRight: '1px solid',
+        borderColor: 'divider'
+      }}>
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            fontWeight: 700,
+            letterSpacing: '0.5px',
+            color: 'text.primary',
+            ml: 1,
+            fontFamily: 'Inter, sans-serif'
+          }}
+        >
           Where&apos;s Gas
         </Typography>
       </Toolbar>
-      <Divider />
-      <List>
+      <Divider sx={{ borderColor: 'divider' }} />
+      <List sx={{ py: 2 }}>
         {menuItems.map((item) => (
           <ListItem
             button
@@ -51,9 +68,37 @@ export default function Layout({ children }) {
             component={Link}
             to={item.path}
             selected={location.pathname === item.path}
+            sx={{
+              borderRadius: 1,
+              '&.Mui-selected': {
+                backgroundColor: 'primary.dark',
+                borderLeft: '4px solid',
+                borderColor: 'secondary.main',
+                '& .MuiListItemIcon-root': {
+                  color: 'secondary.main'
+                }
+              },
+              '&:hover': {
+                backgroundColor: 'action.hover',
+              },
+              transition: 'all 0.2s ease-in-out'
+            }}
           >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.text} />
+            <ListItemIcon sx={{ 
+              color: 'text.secondary',
+              minWidth: '40px'
+            }}>
+              {React.cloneElement(item.icon, { fontSize: 'medium' })}
+            </ListItemIcon>
+            <ListItemText 
+              primary={item.text} 
+              primaryTypographyProps={{
+                variant: 'h6',
+                fontWeight: 500,
+                color: 'text.primary',
+                fontFamily: 'Inter, sans-serif'
+              }} 
+            />
           </ListItem>
         ))}
       </List>
@@ -61,12 +106,16 @@ export default function Layout({ children }) {
   );
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', bgcolor: 'background.default' }}>
       <AppBar
         position="fixed"
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
+          bgcolor: 'background.paper',
+          boxShadow: 'none',
+          borderBottom: '1px solid',
+          borderColor: 'divider'
         }}
       >
         <Toolbar>
@@ -74,11 +123,24 @@ export default function Layout({ children }) {
             color="inherit"
             edge="start"
             onClick={() => setMobileOpen(!mobileOpen)}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+            sx={{ 
+              mr: 2, 
+              display: { sm: 'none' },
+              color: 'text.primary'
+            }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography 
+            variant="h6" 
+            noWrap 
+            sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+              fontFamily: 'Inter, sans-serif',
+              letterSpacing: '0.3px'
+            }}
+          >
             {menuItems.find((item) => item.path === location.pathname)?.text}
           </Typography>
         </Toolbar>
@@ -91,14 +153,15 @@ export default function Layout({ children }) {
           variant="temporary"
           open={mobileOpen}
           onClose={() => setMobileOpen(false)}
-          ModalProps={{
-            keepMounted: true,
-          }}
+          ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: drawerWidth,
+              bgcolor: 'background.paper',
+              borderRight: '1px solid',
+              borderColor: 'divider'
             },
           }}
         >
@@ -111,6 +174,9 @@ export default function Layout({ children }) {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: drawerWidth,
+              bgcolor: 'background.paper',
+              borderRight: '1px solid',
+              borderColor: 'divider'
             },
           }}
           open
@@ -122,13 +188,21 @@ export default function Layout({ children }) {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
+          bgcolor: 'background.default',
+          minHeight: '100vh'
         }}
       >
         <Toolbar />
-        {children}
+        <Box sx={{ 
+          maxWidth: 1200,
+          mx: 'auto',
+          borderRadius: 2,
+          bgcolor: 'background.paper',
+        }}>
+          {children}
+        </Box>
       </Box>
     </Box>
   );
-} 
+}

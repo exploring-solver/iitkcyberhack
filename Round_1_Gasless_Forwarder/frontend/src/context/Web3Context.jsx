@@ -1,4 +1,5 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+/* eslint-disable react/prop-types */
+import  { createContext, useState, useEffect, useCallback } from 'react';
 import Web3 from 'web3';
 import ForwarderContract from '../contracts/Forwarder.json';
 
