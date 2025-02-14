@@ -38,36 +38,61 @@ const Bridge = () => {
     const [isBalanceLoading, setIsBalanceLoading] = useState(false);
 
     const fetchBalance = async () => {
-        if (!account || !contracts?.[sourceChain]?.token || isTransferring) return;
-
+        console.log('[fetchBalance] Starting balance fetch');
+        
+        if (!account || !contracts?.[sourceChain]?.token || isTransferring) {
+            console.log('[fetchBalance] Exiting early due to missing prerequisites');
+            return;
+        }
+    
         setIsBalanceLoading(true);
         try {
-            // Only switch networks if we're not in the middle of a transfer
-            if (!isTransferring) {
-                const currentChainId = await window.ethereum.request({ 
-                    method: 'eth_chainId' 
-                });
-                
-                const expectedChainId = NETWORKS[sourceChain].chainId.toUpperCase();
-                const actualChainId = currentChainId.toUpperCase();
-                
-                if (actualChainId !== expectedChainId) {
-                    try {
-                        await switchNetwork(sourceChain);
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                    } catch (switchError) {
-                        console.error('Network switch error in fetchBalance:', switchError);
-                        setBalance('0');
-                        return;
+            const currentChainId = await window.ethereum.request({ 
+                method: 'eth_chainId' 
+            });
+            
+            const expectedChainId = Web3.utils.toHex(NETWORKS[sourceChain].chainId);
+            const actualChainId = currentChainId.toLowerCase();
+    
+            if (actualChainId !== expectedChainId.toLowerCase()) {
+                try {
+                    // Use a retry mechanism for network switching
+                    let retries = 3;
+                    while (retries > 0) {
+                        try {
+                            await switchNetwork(sourceChain);
+                            // Wait for network switch to settle
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                            break;
+                        } catch (switchError) {
+                            retries--;
+                            if (retries === 0) throw switchError;
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
                     }
+                } catch (switchError) {
+                    console.error('[fetchBalance] Network switch failed:', switchError);
+                    setBalance('0');
+                    return;
                 }
             }
-
+    
+            // Verify we're on the correct network after switching
+            const finalChainId = await window.ethereum.request({ 
+                method: 'eth_chainId' 
+            });
+    
+            if (finalChainId.toLowerCase() !== expectedChainId.toLowerCase()) {
+                throw new Error('Network verification failed after switch');
+            }
+    
             const tokenContract = contracts[sourceChain].token;
             const balance = await tokenContract.methods.balanceOf(account).call();
-            setBalance(Web3.utils.fromWei(balance, 'ether'));
+            const formattedBalance = Web3.utils.fromWei(balance, 'ether');
+            setBalance(formattedBalance);
+    
         } catch (err) {
-            console.error('Error fetching balance:', err);
+            console.error('[fetchBalance] Error:', err);
             setBalance('0');
         } finally {
             setIsBalanceLoading(false);
@@ -137,6 +162,10 @@ const Bridge = () => {
                 '0x7A69': 'amoy',    // 31337
                 '0x7A6A': 'sepolia'  // 31338
             };
+            // const networkMap = {
+            //     '0x13882': 'amoy',
+            //     '0xaa36a7': 'sepolia',
+            // };
 
             const newNetwork = networkMap[chainId];
             if (newNetwork) {
@@ -180,8 +209,12 @@ const Bridge = () => {
     
 
     // Alert: Might be a breaking change comment below 14-02-2025, 00:53 am
+    
+    
     const handleTransfer = async () => {
+        console.log('[handleTransfer] Starting transfer');
         if (!account) {
+            console.log('[handleTransfer] No account connected');
             setError('Please connect your wallet');
             return;
         }
@@ -191,22 +224,32 @@ const Bridge = () => {
             setError('');
             setSuccess('');
     
-            // Convert amount to wei
-            const amountInWei = Web3.utils.toWei(amount, 'ether').toString();
+            console.log('[handleTransfer] Transfer parameters:', {
+                transferType,
+                amount,
+                tokenId,
+                receiverAddress: receiverAddress || account,
+                sourceChain,
+                targetChain
+            });
     
-            // First step: Lock or burn tokens
+            const amountInWei = Web3.utils.toWei(amount, 'ether').toString();
+            console.log('[handleTransfer] Amount in Wei:', amountInWei);
+    
+            console.log('[handleTransfer] Initiating bridge transfer');
             const tx = await handleBridgeTransfer(
                 transferType,
                 amount,
                 tokenId,
-                receiverAddress || account // Use account as default receiver if not specified
+                receiverAddress || account
             );
     
             if (!tx?.transactionHash) {
+                console.error('[handleTransfer] No transaction hash received');
                 throw new Error('Failed to get transaction hash from bridge transfer');
             }
+            console.log('[handleTransfer] Transaction hash:', tx.transactionHash);
     
-            // Second step: Submit to relayer with proper data formatting
             const transferData = {
                 sourceChain,
                 targetChain,
@@ -216,22 +259,26 @@ const Bridge = () => {
                 receiverAddress: receiverAddress || account
             };
     
-            console.log('Submitting to relayer:', transferData);
+            console.log('[handleTransfer] Submitting to relayer:', transferData);
             const result = await relayerService.requestBridgeTransfer(transferData);
     
             if (!result?.transferId) {
+                console.error('[handleTransfer] No transfer ID received from relayer');
                 throw new Error('Failed to get transfer ID from relayer');
             }
+            console.log('[handleTransfer] Relayer transfer ID:', result.transferId);
     
-            // Start monitoring the transfer with timeout
             let attempts = 0;
-            const maxAttempts = 30; // 5 minutes with 10-second intervals
+            const maxAttempts = 30;
             
             const checkStatus = async () => {
+                console.log(`[handleTransfer] Checking status attempt ${attempts + 1}/${maxAttempts}`);
                 try {
                     const status = await relayerService.getTransferStatus(result.transferId);
+                    console.log('[handleTransfer] Transfer status:', status);
                     
                     if (status.completed) {
+                        console.log('[handleTransfer] Transfer completed successfully');
                         setSuccess('Transfer completed successfully!');
                         setLoading(false);
                         if (transferType === 'token') {
@@ -241,16 +288,19 @@ const Bridge = () => {
                     } 
                     
                     if (status.error) {
+                        console.error('[handleTransfer] Transfer status error:', status.error);
                         throw new Error(status.error);
                     }
     
                     attempts++;
                     if (attempts >= maxAttempts) {
+                        console.error('[handleTransfer] Max attempts reached');
                         throw new Error('Transfer timeout - please check status later');
                     }
     
-                    setTimeout(checkStatus, 10000); // Check every 10 seconds
+                    setTimeout(checkStatus, 10000);
                 } catch (err) {
+                    console.error('[handleTransfer] Status check error:', err);
                     setError(`Transfer failed: ${err.message}`);
                     setLoading(false);
                 }
@@ -259,7 +309,7 @@ const Bridge = () => {
             checkStatus();
     
         } catch (err) {
-            console.error('Transfer error:', err);
+            console.error('[handleTransfer] Transfer error:', err);
             setError(err.message || 'An error occurred during transfer');
             setLoading(false);
         }

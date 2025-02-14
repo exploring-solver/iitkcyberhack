@@ -1,4 +1,6 @@
 const express = require('express');
+const Receipt = require('../models/Receipt');
+const Transaction = require('../models/Transaction');
 
 // Helper function to convert BigInt values to strings in an object
 function convertBigIntToString(obj) {
@@ -50,10 +52,31 @@ function bridgeRoutes(relayer) {
         }
     });
 
+    router.get('/receipt/:transferId', async (req, res, next) => {
+        try {
+            const receipt = await Receipt.findOne({ transferId: req.params.transferId })
+                .populate('transaction');
+            
+            if (!receipt) {
+                return res.status(404).json({ error: 'Receipt not found' });
+            }
+            
+            res.json(receipt);
+        } catch (error) {
+            next(error);
+        }
+    });
+
     router.get('/transactions/:address', async (req, res) => {
         try {
             const { address } = req.params;
-            const transactions = await relayer.getTransactionsByAddress(address);
+            const transactions = await Transaction.find({
+                $or: [
+                    { userAddress: address.toLowerCase() },
+                    { receiverAddress: address.toLowerCase() }
+                ]
+            }).sort({ timestamp: -1 });
+            
             res.json({ transactions });
         } catch (error) {
             res.status(500).json({ 

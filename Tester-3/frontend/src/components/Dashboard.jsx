@@ -39,28 +39,28 @@ const Dashboard = () => {
           {account ? (
             <>
               {/* Transfer Section */}
-              <section>
+              {/* <section>
                 <Transfer />
-              </section>
+              </section> */}
 
               {/* Token Management Section */}
-              <section>
+              {/* <section>
                 <TokenManagement />
-              </section>
+              </section> */}
               {/* Bridge Section */}
               <section>
                 <Bridge />
               </section>
 
               {/* NFT Management Section */}
-              <section>
+              {/* <section>
                 <NFTManagement />
-              </section>
+              </section> */}
 
               {/* Transaction History Section */}
-              <section>
+              {/* <section>
                 <TransactionHistory />
-              </section>
+              </section> */}
             </>
           ) : (
             <div className="text-center py-8">
