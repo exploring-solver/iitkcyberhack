@@ -1,25 +1,7 @@
 import { useContext, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Switch,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  Divider,
-  Button,
-  TextField,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Grid,
-  DialogActions,
-} from '@mui/material';
 import { Web3Context } from '../context/Web3Context';
+import { Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Switch, Button, TextField } from '@mui/material';
 
 export default function Settings() {
   const { account, networkId } = useContext(Web3Context);
@@ -65,307 +47,134 @@ export default function Settings() {
   };
 
   return (
-    <Box sx={{ p: 3 , minHeight: screen}} >
-      <Typography variant="h4" gutterBottom sx={{ 
-        fontWeight: 600,
-        mb: 4,
-        color: 'text.primary',
-        fontFamily: 'Inter, sans-serif'
-      }}>
-        Settings
-      </Typography>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h1 className="text-3xl font-bold mb-8 text-gray-900">Settings</h1>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card sx={{ 
-            bgcolor: 'background.paper',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-            borderRadius: 2
-          }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ 
-                fontWeight: 600,
-                mb: 2,
-                color: 'text.primary',
-                fontFamily: 'Inter, sans-serif'
-              }}>
-                Network Settings
-              </Typography>
-              <List dense>
-                <ListItem sx={{ py: 1.5 }}>
-                  <ListItemText
-                    primary="Connected Account"
-                    primaryTypographyProps={{ 
-                      variant: 'body1',
-                      fontWeight: 500,
-                      color: 'text.primary'
-                    }}
-                    secondary={account || 'Not connected'}
-                    secondaryTypographyProps={{ 
-                      variant: 'body2',
-                      color: 'text.secondary',
-                      sx: { fontFamily: 'monospace' }
-                    }}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-gray-100 p-6 rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900">Network Settings</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Connected Account</label>
+                  <p className="mt-1 text-sm text-gray-500 font-mono">{account || 'Not connected'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Network ID</label>
+                  <p className="mt-1 text-sm text-gray-500">{networkId || 'Unknown'}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Auto Gas Estimation</label>
+                    <p className="mt-1 text-sm text-gray-500">Automatically estimate gas for transactions</p>
+                  </div>
+                  <Switch
+                    checked={settings.autoGasEstimation}
+                    onChange={handleSettingChange('autoGasEstimation')}
+                    color="primary"
                   />
-                </ListItem>
-                <ListItem sx={{ py: 1.5 }}>
-                  <ListItemText
-                    primary="Network ID"
-                    primaryTypographyProps={{ 
-                      variant: 'body1',
-                      fontWeight: 500,
-                      color: 'text.primary'
-                    }}
-                    secondary={networkId || 'Unknown'}
-                    secondaryTypographyProps={{ 
-                      variant: 'body2',
-                      color: 'text.secondary'
-                    }}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Default Gas Limit</label>
+                    <p className="mt-1 text-sm text-gray-500">Set default gas limit for transactions</p>
+                  </div>
+                  <TextField
+                    size="small"
+                    value={settings.gasLimit}
+                    onChange={handleSettingChange('gasLimit')}
+                    disabled={settings.autoGasEstimation}
+                    className="w-24"
                   />
-                </ListItem>
-                <Divider sx={{ my: 2, bgcolor: 'divider' }} />
-                <ListItem sx={{ py: 1.5 }}>
-                  <ListItemText
-                    primary="Auto Gas Estimation"
-                    secondary="Automatically estimate gas for transactions"
-                    primaryTypographyProps={{ 
-                      variant: 'body1',
-                      fontWeight: 500,
-                      color: 'text.primary'
-                    }}
-                    secondaryTypographyProps={{ 
-                      variant: 'body2',
-                      color: 'text.secondary'
-                    }}
-                  />
-                  <ListItemSecondaryAction>
-                    <Switch
-                      edge="end"
-                      checked={settings.autoGasEstimation}
-                      onChange={handleSettingChange('autoGasEstimation')}
-                      color="secondary"
-                    />
-                  </ListItemSecondaryAction>
-                </ListItem>
-                <ListItem sx={{ py: 1.5 }}>
-                  <ListItemText
-                    primary="Default Gas Limit"
-                    secondary="Set default gas limit for transactions"
-                    primaryTypographyProps={{ 
-                      variant: 'body1',
-                      fontWeight: 500,
-                      color: 'text.primary'
-                    }}
-                    secondaryTypographyProps={{ 
-                      variant: 'body2',
-                      color: 'text.secondary'
-                    }}
-                  />
-                  <ListItemSecondaryAction>
-                    <TextField
-                      size="small"
-                      value={settings.gasLimit}
-                      onChange={handleSettingChange('gasLimit')}
-                      disabled={settings.autoGasEstimation}
-                      sx={{
-                        width: 100,
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 1,
-                          bgcolor: 'background.default'
-                        }
-                      }}
-                    />
-                  </ListItemSecondaryAction>
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
+                </div>
+              </div>
+            </div>
 
-        <Grid item xs={12} md={6}>
-          <Card sx={{ 
-            bgcolor: 'background.paper',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-            borderRadius: 2
-          }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ 
-                fontWeight: 600,
-                mb: 2,
-                color: 'text.primary',
-                fontFamily: 'Inter, sans-serif'
-              }}>
-                Application Settings
-              </Typography>
-              <List dense>
-                <ListItem sx={{ py: 1.5 }}>
-                  <ListItemText
-                    primary="Notifications"
-                    secondary="Enable transaction notifications"
-                    primaryTypographyProps={{ 
-                      variant: 'body1',
-                      fontWeight: 500,
-                      color: 'text.primary'
-                    }}
-                    secondaryTypographyProps={{ 
-                      variant: 'body2',
-                      color: 'text.secondary'
-                    }}
+            <div className="bg-gray-100 p-6 rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900">Application Settings</h2>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Notifications</label>
+                    <p className="mt-1 text-sm text-gray-500">Enable transaction notifications</p>
+                  </div>
+                  <Switch
+                    checked={settings.notificationsEnabled}
+                    onChange={handleSettingChange('notificationsEnabled')}
+                    color="primary"
                   />
-                  <ListItemSecondaryAction>
-                    <Switch
-                      edge="end"
-                      checked={settings.notificationsEnabled}
-                      onChange={handleSettingChange('notificationsEnabled')}
-                      color="secondary"
-                    />
-                  </ListItemSecondaryAction>
-                </ListItem>
-                <ListItem sx={{ py: 1.5 }}>
-                  <ListItemText
-                    primary="Dark Mode"
-                    secondary="Toggle dark/light theme"
-                    primaryTypographyProps={{ 
-                      variant: 'body1',
-                      fontWeight: 500,
-                      color: 'text.primary'
-                    }}
-                    secondaryTypographyProps={{ 
-                      variant: 'body2',
-                      color: 'text.secondary'
-                    }}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Dark Mode</label>
+                    <p className="mt-1 text-sm text-gray-500">Toggle dark/light theme</p>
+                  </div>
+                  <Switch
+                    checked={settings.darkMode}
+                    onChange={handleSettingChange('darkMode')}
+                    color="primary"
                   />
-                  <ListItemSecondaryAction>
-                    <Switch
-                      edge="end"
-                      checked={settings.darkMode}
-                      onChange={handleSettingChange('darkMode')}
-                      color="secondary"
-                    />
-                  </ListItemSecondaryAction>
-                </ListItem>
-              </List>
+                </div>
+              </div>
 
-              <Box sx={{ 
-                mt: 3, 
-                display: 'flex', 
-                gap: 2, 
-                justifyContent: 'flex-end'
-              }}>
+              <div className="mt-6 flex justify-end space-x-4">
                 <Button
                   variant="outlined"
-                  color="error"
+                  color="secondary"
                   onClick={() => setOpenDialog(true)}
-                  sx={{
-                    textTransform: 'none',
-                    borderRadius: 1,
-                    px: 3,
-                    '&:hover': {
-                      bgcolor: 'error.dark',
-                      color: 'white'
-                    }
-                  }}
+                  className="text-sm font-medium"
                 >
                   Reset to Defaults
                 </Button>
                 <Button
                   variant="contained"
-                  color="secondary"
+                  color="primary"
                   onClick={handleSaveSettings}
-                  sx={{
-                    textTransform: 'none',
-                    borderRadius: 1,
-                    px: 3,
-                    boxShadow: 'none',
-                    '&:hover': {
-                      bgcolor: 'secondary.dark',
-                      boxShadow: 'none'
-                    }
-                  }}
+                  className="text-sm font-medium"
                 >
                   Save Settings
                 </Button>
-              </Box>
+              </div>
 
               {status.message && (
-                <Alert 
-                  severity={status.type} 
-                  sx={{ 
-                    mt: 2,
-                    borderRadius: 1,
-                    bgcolor: status.type === 'success' ? 'success.dark' : 'error.dark'
-                  }}
-                >
+                <Alert severity={status.type} className="mt-4">
                   {status.message}
                 </Alert>
               )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+            </div>
+          </div>
 
-      <Dialog 
-        open={openDialog} 
-        onClose={() => setOpenDialog(false)}
-        PaperProps={{
-          sx: {
-            bgcolor: 'background.paper',
-            borderRadius: 2,
-            boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.2)'
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          fontWeight: 600,
-          color: 'text.primary',
-          bgcolor: 'background.default',
-          borderBottom: '1px solid',
-          borderColor: 'divider'
-        }}>
-          Reset Settings
-        </DialogTitle>
-        <DialogContent sx={{ py: 3 }}>
-          <Typography color="text.secondary">
-            Are you sure you want to reset all settings to their default values?
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ 
-          px: 3,
-          py: 2,
-          bgcolor: 'background.default',
-          borderTop: '1px solid',
-          borderColor: 'divider'
-        }}>
-          <Button 
-            onClick={() => setOpenDialog(false)}
-            sx={{
-              textTransform: 'none',
-              borderRadius: 1,
-              px: 3,
-              color: 'text.secondary'
+          <Dialog
+            open={openDialog}
+            onClose={() => setOpenDialog(false)}
+            PaperProps={{
+              className: 'bg-white rounded-lg shadow-lg',
             }}
           >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleReset} 
-            color="error"
-            variant="contained"
-            sx={{
-              textTransform: 'none',
-              borderRadius: 1,
-              px: 3,
-              boxShadow: 'none',
-              '&:hover': {
-                bgcolor: 'error.dark',
-                boxShadow: 'none'
-              }
-            }}
-          >
-            Reset
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+            <DialogTitle className="text-lg font-semibold text-gray-900">Reset Settings</DialogTitle>
+            <DialogContent className="py-4">
+              <p className="text-sm text-gray-500">Are you sure you want to reset all settings to their default values?</p>
+            </DialogContent>
+            <DialogActions className="px-4 py-2">
+              <Button
+                onClick={() => setOpenDialog(false)}
+                className="text-sm font-medium text-gray-700"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleReset}
+                color="secondary"
+                variant="contained"
+                className="text-sm font-medium"
+              >
+                Reset
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </div>
+      </div>
+    </div>
   );
 }

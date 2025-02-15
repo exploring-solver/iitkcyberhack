@@ -9,6 +9,8 @@ import { Web3Provider } from './context/Web3Context';
 import Instructions from './components/Instructions';
 import { LeaderboardPage } from './components/Leaderboard';
 import { FAQPage } from './components/FAQPage';
+import PriceReflector from './components/PriceReflector';
+import GasEstimator from './components/GasFees';
 
 const darkTheme = createTheme({
   palette: {
@@ -40,6 +42,8 @@ function App() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/faq" element={<FAQPage />} />
+              <Route path="/price" element={<PriceReflector />} />
+              <Route path="/gas" element={<GasEstimator />} />
             </Routes>
           </Layout>
         </Router>

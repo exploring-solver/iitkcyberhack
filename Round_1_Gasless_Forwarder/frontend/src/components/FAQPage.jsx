@@ -47,70 +47,68 @@ export function FAQPage() {
   const filteredFaqs = faqs.filter((faq) => faq.category === activeCategory);
 
   return (
-    <div className="min-h-screen mx-auto px-4 py-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4 neon-text">
-            <HelpCircle className="w-10 h-10 inline-block mr-4" />
-            Frequently Asked Questions
-          </h1>
-          <p className="text-gray-400">
-            Everything you need to know about gasless transactions
-          </p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold mb-4 text-gray-900">
+              <HelpCircle className="w-10 h-10 inline-block mr-4" />
+              Frequently Asked Questions
+            </h1>
+            <p className="text-gray-500">Everything you need to know about gasless transactions</p>
+          </div>
 
-        {/* Category Selection */}
-        <div className="flex justify-center mb-8 space-x-2">
-          {['general', 'technical', 'security'].map((category) => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                activeCategory === category
-                  ? 'bg-blue-600 text-white neon-border'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
-            >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        {/* FAQ Accordion */}
-        <div className="space-y-4">
-          {filteredFaqs.map((faq, index) => (
-            <div key={index} className="glass-panel overflow-hidden">
+          {/* Category Selection */}
+          <div className="flex justify-center mb-8 space-x-2">
+            {['general', 'technical', 'security'].map((category) => (
               <button
-                className="w-full p-6 text-left flex items-center justify-between"
-                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-              >
-                <span className="font-medium">{faq.question}</span>
-                {openIndex === index ? (
-                  <ChevronUp className="w-5 h-5 text-blue-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
-              <div
-                className={`px-6 transition-all duration-200 ${
-                  openIndex === index ? 'pb-6' : 'h-0 overflow-hidden'
+                key={category}
+                onClick={() => setActiveCategory(category)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeCategory === category
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
-                <p className="text-gray-400">{faq.answer}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+                {category.charAt(0).toUpperCase() + category.slice(1)}
+              </button>
+            ))}
+          </div>
 
-        {/* Contact Support */}
-        <div className="mt-12 text-center">
-          <p className="text-gray-400 mb-4">
-            Can&apos;t find what you&apos;re looking for?
-          </p>
-          <button className="cyber-button">
-            Contact Support
-            <HelpCircle className="w-5 h-5 inline-block ml-2" />
-          </button>
+          {/* FAQ Accordion */}
+          <div className="space-y-4">
+            {filteredFaqs.map((faq, index) => (
+              <div key={index} className="bg-gray-100 rounded-lg shadow-sm overflow-hidden">
+                <button
+                  className="w-full p-6 text-left flex items-center justify-between"
+                  onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                >
+                  <span className="font-medium text-gray-900">{faq.question}</span>
+                  {openIndex === index ? (
+                    <ChevronUp className="w-5 h-5 text-blue-400" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                  )}
+                </button>
+                <div
+                  className={`px-6 transition-all duration-200 ${
+                    openIndex === index ? 'pb-6' : 'h-0 overflow-hidden'
+                  }`}
+                >
+                  <p className="text-gray-500">{faq.answer}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Contact Support */}
+          <div className="mt-12 text-center">
+            <p className="text-gray-500 mb-4">Can&apos;t find what you&apos;re looking for?</p>
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200">
+              Contact Support
+              <HelpCircle className="w-5 h-5 inline-block ml-2" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
