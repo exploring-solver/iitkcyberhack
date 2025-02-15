@@ -3,14 +3,14 @@ import Web3 from 'web3';
 import { ethers } from 'ethers';
 
 // Import ABIs
-import TokenABI from '../../../artifacts/contracts/Token.sol/Token.json';
-import WrappedTokenABI from '../../../artifacts/contracts/WrappedToken.sol/WrappedToken.json';
-import BridgeAmoyABI from '../../../artifacts/contracts/BridgeAmoy.sol/BridgeAmoy.json';
-import BridgeSepoliaABI from '../../../artifacts/contracts/BridgeSepolia.sol/BridgeSepolia.json';
-import NativeNFTABI from '../../../artifacts/contracts/NativeNFT.sol/NativeNFT.json';
-import WrappedNFTABI from '../../../artifacts/contracts/WrappedNFT.sol/WrappedNFT.json';
-import BridgeAmoyNFTABI from '../../../artifacts/contracts/BridgeAmoyNFT.sol/BridgeAmoyNFT.json';
-import BridgeSepoliaNFTABI from '../../../artifacts/contracts/BridgeSepoliaNFT.sol/BridgeSepoliaNFT.json';
+import TokenABI from '../contracts/Token.sol/Token.json';
+import WrappedTokenABI from '../contracts/WrappedToken.sol/WrappedToken.json';
+import BridgeAmoyABI from '../contracts/BridgeAmoy.sol/BridgeAmoy.json';
+import BridgeSepoliaABI from '../contracts/BridgeSepolia.sol/BridgeSepolia.json';
+import NativeNFTABI from '../contracts/NativeNFT.sol/NativeNFT.json';
+import WrappedNFTABI from '../contracts/WrappedNFT.sol/WrappedNFT.json';
+import BridgeAmoyNFTABI from '../contracts/BridgeAmoyNFT.sol/BridgeAmoyNFT.json';
+import BridgeSepoliaNFTABI from '../contracts/BridgeSepoliaNFT.sol/BridgeSepoliaNFT.json';
 
 import { NETWORKS, CONTRACT_ADDRESSES } from './ContractContext';
 
@@ -52,38 +52,121 @@ export const BridgeProvider = ({ children }) => {
             }
 
             if (transferType === 'token') {
-                const amountInWei = Web3.utils.toWei(amount, 'ether');
-                
-                if (sourceChain === 'amoy') {
-                    // Only do the lock operation, relayer handles the release
-                    const bridgeAddress = state.contracts.amoy.bridge._address;
-                    
-                    await state.contracts.amoy.token.methods.approve(
-                        bridgeAddress,
-                        amountInWei
-                    ).send({ from: state.account });
+                const amountInWei = Web3.utils.toWei(amount, 'ether').toString();
+                console.log('Amount in Wei:', amountInWei);
 
-                    return await state.contracts.amoy.bridge.methods.lock(amountInWei)
-                        .send({ from: state.account });
+                if (sourceChain === 'amoy') {
+                    const bridgeAddress = state.contracts.amoy.bridge._address;
+                    console.log('Bridge Address:', bridgeAddress);
+                    console.log(state.contracts.amoy.token.methods);
+                    // Add try-catch for detailed error logging
+                    try {
+                        // Get current allowance
+                        const currentAllowance = await state.contracts.amoy.token.methods
+                            .allowance(state.account, bridgeAddress)
+                            .call();
+                        console.log('Current allowance:', currentAllowance);
+
+                        if (BigInt(currentAllowance) < BigInt(amountInWei)) {
+                            console.log('Estimating approve gas...');
+                            const approveGasEstimate = await state.contracts.amoy.token.methods
+                                .approve(bridgeAddress, amountInWei)
+                                .estimateGas({ from: state.account });
+
+                            const approveGasWithBuffer = Math.floor(Number(approveGasEstimate) * 1.2);
+                            console.log('Approve gas estimate with buffer:', approveGasWithBuffer);
+
+                            console.log('Sending approve transaction...');
+                            await state.contracts.amoy.token.methods
+                                .approve(bridgeAddress, amountInWei)
+                                .send({
+                                    from: state.account,
+                                    gas: approveGasWithBuffer
+                                });
+                        }
+
+                        // Get gas estimate for lock
+                        console.log('Estimating lock gas...');
+                        const lockGasEstimate = await state.contracts.amoy.bridge.methods
+                            .lock(amountInWei)
+                            .estimateGas({
+                                from: state.account,
+                                value: '0'
+                            });
+
+                        const lockGasWithBuffer = Math.floor(Number(lockGasEstimate) * 1.2);
+                        console.log('Lock gas estimate with buffer:', lockGasWithBuffer);
+
+                        // Execute lock with buffered gas
+                        console.log('Executing lock transaction...');
+                        return await state.contracts.amoy.bridge.methods
+                            .lock(amountInWei)
+                            .send({
+                                from: state.account,
+                                gas: lockGasWithBuffer,
+                                value: '0'
+                            });
+                    } catch (error) {
+                        console.error('Detailed transaction error:', error);
+                        if (error.message.includes('insufficient funds')) {
+                            throw new Error('Insufficient funds to complete the transaction');
+                        }
+                        throw error;
+                    }
                 } else {
-                    // Only do the burn operation, relayer handles the unlock
                     const bridgeAddress = state.contracts.sepolia.bridge._address;
 
-                    await state.contracts.sepolia.token.methods.approve(
-                        bridgeAddress,
-                        amountInWei
-                    ).send({ from: state.account });
+                    try {
+                        const currentAllowance = await state.contracts.sepolia.token.methods
+                            .allowance(state.account, bridgeAddress)
+                            .call();
 
-                    return await state.contracts.sepolia.bridge.methods.burn(amountInWei)
-                        .send({ from: state.account });
+                        if (BigInt(currentAllowance) < BigInt(amountInWei)) {
+                            const approveGasEstimate = await state.contracts.sepolia.token.methods
+                                .approve(bridgeAddress, amountInWei)
+                                .estimateGas({ from: state.account });
+
+                            const approveGasWithBuffer = Math.floor(Number(approveGasEstimate) * 1.2);
+
+                            await state.contracts.sepolia.token.methods
+                                .approve(bridgeAddress, amountInWei)
+                                .send({
+                                    from: state.account,
+                                    gas: approveGasWithBuffer
+                                });
+                        }
+
+                        const burnGasEstimate = await state.contracts.sepolia.bridge.methods
+                            .burn(amountInWei)
+                            .estimateGas({
+                                from: state.account,
+                                value: '0'
+                            });
+
+                        const burnGasWithBuffer = Math.floor(Number(burnGasEstimate) * 1.2);
+
+                        return await state.contracts.sepolia.bridge.methods
+                            .burn(amountInWei)
+                            .send({
+                                from: state.account,
+                                gas: burnGasWithBuffer,
+                                value: '0'
+                            });
+                    } catch (error) {
+                        console.error('Detailed transaction error:', error);
+                        if (error.message.includes('insufficient funds')) {
+                            throw new Error('Insufficient funds to complete the transaction');
+                        }
+                        throw error;
+                    }
                 }
             } else {
                 // NFT transfer logic
                 if (sourceChain === 'amoy') {
                     const bridgeAddress = state.contracts.amoy.nftBridge._address;
-                    
+
                     await state.contracts.amoy.nft.methods.approve(
-                        bridgeAddress, 
+                        bridgeAddress,
                         tokenId
                     ).send({ from: state.account });
 
@@ -135,6 +218,7 @@ export const BridgeProvider = ({ children }) => {
         }
     };
 
+    // Update the switchNetwork function
     const switchNetwork = async (targetNetwork) => {
         try {
             const network = NETWORKS[targetNetwork];
@@ -142,40 +226,73 @@ export const BridgeProvider = ({ children }) => {
                 throw new Error(`Invalid network: ${targetNetwork}`);
             }
 
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: network.chainId }],
+            // Add mutex to prevent concurrent network switches
+            if (window.isNetworkSwitching) {
+                throw new Error('Network switch already in progress');
+            }
+            window.isNetworkSwitching = true;
+
+            // Check current chain first
+            const currentChainId = await window.ethereum.request({
+                method: 'eth_chainId'
             });
 
-            // Add mandatory delay after network switch
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Only switch if needed
+            if (currentChainId.toLowerCase() !== network.chainId.toLowerCase()) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: network.chainId }],
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: network.chainId,
+                                chainName: network.name,
+                                rpcUrls: [network.rpcUrl],
+                                nativeCurrency: network.nativeCurrency,
+                                blockExplorerUrls: [network.blockExplorer]
+                            }],
+                        });
+                    } else {
+                        throw switchError;
+                    }
+                }
 
-            // Verify the switch was successful
-            const currentChainId = await window.ethereum.request({ 
-                method: 'eth_chainId' 
-            });
-            
-            if (currentChainId.toUpperCase() !== network.chainId.toUpperCase()) {
-                throw new Error('Network switch failed');
+                // Wait for network switch to complete
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        cleanup();
+                        reject(new Error('Network switch timeout'));
+                    }, 10000);
+
+                    const handleChainChanged = (chainId) => {
+                        if (chainId.toLowerCase() === network.chainId.toLowerCase()) {
+                            cleanup();
+                            resolve();
+                        }
+                    };
+
+                    const cleanup = () => {
+                        clearTimeout(timeout);
+                        window.ethereum.removeListener('chainChanged', handleChainChanged);
+                    };
+
+                    window.ethereum.on('chainChanged', handleChainChanged);
+                });
             }
 
             setSourceChain(targetNetwork);
             setTargetChain(targetNetwork === 'amoy' ? 'sepolia' : 'amoy');
 
+            return true;
         } catch (error) {
-            if (error.code === 4902) {
-                // Network needs to be added to MetaMask
-                await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                        chainId: network.chainId,
-                        chainName: network.name,
-                        rpcUrls: [network.rpcUrl],
-                    }],
-                });
-            }
             console.error('Network switch error:', error);
             throw error;
+        } finally {
+            window.isNetworkSwitching = false;
         }
     };
 
