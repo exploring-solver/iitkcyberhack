@@ -1,0 +1,14 @@
+Current gas price: 1.070036286 gwei
+Deploying contracts with account: 0xD57e0418F112bf27912174Db6E53354a1661946A
+Account balance: 1.45041700751231589 ETH
+
+Deploying Wrapped NFT...
+Wrapped NFT deployed at: 0x9A1B14686A92af64a613E42EFfb7a9c1B77188B4
+
+Deploying Bridge...
+Bridge deployed at: 0xC9D92e5017d4748feBD8e276725681c65a767451
+Bridge set as NFT owner on Sepolia
+
+No initial NFT distribution on Sepolia as NFTs will be minted during bridging
+
+Verifying contracts on Etherscan...
