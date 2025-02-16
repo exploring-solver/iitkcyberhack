@@ -1,208 +1,113 @@
 /* eslint-disable react/prop-types */
-import React from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Box,
-  Drawer,
-  AppBar,
-  Toolbar,
-  List,
-  Typography,
-  Divider,
-  IconButton,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-} from '@mui/material';
-import {
-  Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  SwapHoriz as TransactionsIcon,
-  Settings as SettingsIcon,
-  IntegrationInstructions,
-  Leaderboard,
-  QuestionAnswer,
-} from '@mui/icons-material';
-
-const drawerWidth = 240;
+  LayoutDashboard,
+  ArrowLeftRight,
+  Settings,
+  FileCode2,
+  Trophy,
+  HelpCircle,
+  LineChart,
+  Menu,
+  X
+} from 'lucide-react';
 
 export default function Layout({ children }) {
-  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Transactions', icon: <TransactionsIcon />, path: '/transactions' },
-    { text: 'Instructions', icon: <IntegrationInstructions />, path: '/instructions' },
-    { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
-    { text: 'LeaderBoard', icon: <Leaderboard />, path: '/leaderboard' },
-    { text: 'FAQs', icon: <QuestionAnswer />, path: '/faq' },
+    { text: 'Dashboard', icon: LayoutDashboard, path: '/' },
+    { text: 'Transactions', icon: ArrowLeftRight, path: '/transactions' },
+    { text: 'Instructions', icon: FileCode2, path: '/instructions' },
+    { text: 'Settings', icon: Settings, path: '/settings' },
+    { text: 'LeaderBoard', icon: Trophy, path: '/leaderboard' },
+    { text: 'FAQs', icon: HelpCircle, path: '/faq' },
+    { text: 'Live ETH/POL Price', icon: LineChart, path: '/price' },
   ];
 
-  const drawer = (
-    <div>
-      <Toolbar sx={{ 
-        backgroundColor: 'primary.dark',
-        borderRight: '1px solid',
-        borderColor: 'divider'
-      }}>
-        <Typography 
-          variant="h5" 
-          sx={{ 
-            fontWeight: 700,
-            letterSpacing: '0.5px',
-            color: 'text.primary',
-            ml: 1,
-            fontFamily: 'Inter, sans-serif'
-          }}
-        >
-          Where&apos;s Gas
-        </Typography>
-      </Toolbar>
-      <Divider sx={{ borderColor: 'divider' }} />
-      <List sx={{ py: 2 }}>
-        {menuItems.map((item) => (
-          <ListItem
-            button
-            key={item.text}
-            component={Link}
-            to={item.path}
-            selected={location.pathname === item.path}
-            sx={{
-              borderRadius: 1,
-              '&.Mui-selected': {
-                backgroundColor: 'primary.dark',
-                borderLeft: '4px solid',
-                borderColor: 'secondary.main',
-                '& .MuiListItemIcon-root': {
-                  color: 'secondary.main'
-                }
-              },
-              '&:hover': {
-                backgroundColor: 'action.hover',
-              },
-              transition: 'all 0.2s ease-in-out'
-            }}
-          >
-            <ListItemIcon sx={{ 
-              color: 'text.secondary',
-              minWidth: '40px'
-            }}>
-              {React.cloneElement(item.icon, { fontSize: 'medium' })}
-            </ListItemIcon>
-            <ListItemText 
-              primary={item.text} 
-              primaryTypographyProps={{
-                variant: 'h6',
-                fontWeight: 500,
-                color: 'text.primary',
-                fontFamily: 'Inter, sans-serif'
-              }} 
-            />
-          </ListItem>
-        ))}
-      </List>
-    </div>
-  );
-
   return (
-    <Box sx={{ display: 'flex', bgcolor: 'background.default' }}>
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
-          bgcolor: 'background.paper',
-          boxShadow: 'none',
-          borderBottom: '1px solid',
-          borderColor: 'divider'
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            sx={{ 
-              mr: 2, 
-              display: { sm: 'none' },
-              color: 'text.primary'
-            }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography 
-            variant="h6" 
-            noWrap 
-            sx={{
-              fontWeight: 600,
-              color: 'text.primary',
-              fontFamily: 'Inter, sans-serif',
-              letterSpacing: '0.3px'
-            }}
-          >
-            {menuItems.find((item) => item.path === location.pathname)?.text}
-          </Typography>
-        </Toolbar>
-      </AppBar>
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={() => setMobileOpen(false)}
-          ModalProps={{ keepMounted: true }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-              bgcolor: 'background.paper',
-              borderRight: '1px solid',
-              borderColor: 'divider'
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-              bgcolor: 'background.paper',
-              borderRight: '1px solid',
-              borderColor: 'divider'
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          bgcolor: 'background.default',
-          minHeight: '100vh'
-        }}
-      >
-        <Toolbar />
-        <Box sx={{ 
-          maxWidth: 1200,
-          mx: 'auto',
-          borderRadius: 2,
-          bgcolor: 'background.paper',
-        }}>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navbar */}
+      <nav className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center">
+              <span className="text-xl font-bold text-gray-900">Where&apos;s Gas</span>
+            </div>
+
+            {/* Desktop Menu */}
+            <div className="hidden md:flex items-center space-x-4">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.text}
+                    to={item.path}
+                    className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      location.pathname === item.path
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
+                    {item.text}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Mobile menu button */}
+            <div className="md:hidden flex items-center">
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              >
+                {isOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        <div className={`md:hidden ${isOpen ? 'block' : 'hidden'}`}>
+          <div className="px-2 pt-2 pb-3 space-y-1">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.text}
+                  to={item.path}
+                  onClick={() => setIsOpen(false)}
+                  className={`block px-3 py-2 rounded-md text-base font-medium ${
+                    location.pathname === item.path
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <Icon className="w-5 h-5 mr-3" />
+                    {item.text}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <div >
           {children}
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </main>
+    </div>
   );
 }
