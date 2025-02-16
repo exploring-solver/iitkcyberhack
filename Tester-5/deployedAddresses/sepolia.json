@@ -1,0 +1,13 @@
+{
+  "chain": "sepolia",
+  "relayerAddresses": [
+    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
+  ],
+  "contracts": {
+    "wrappedToken": "0xD8a5a9b31c3C0232E196d518E89Fd8bF83AcAd43",
+    "bridge": "0xDC11f7E700A4c898AE5CAddB1082cFfa76512aDD",
+    "relayer": "0x8C23519f4b25422b4d177F6c997b23BC6102B62C"
+  }
+}
