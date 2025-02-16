@@ -46,7 +46,7 @@ const WalletConnection = () => {
                   <p className="text-sm text-gray-600">
                     Balance: {balance
                       ? `${parseFloat(balance).toFixed(4)} ${
-                          chainId === '0x13882' ? 'MATIC' :
+                          chainId === '0x13882' ? 'POL tokens' :
                           chainId === '0x7a69' ? 'TEST tokens' :
                           chainId === '0x7a6a' ? 'Wrapped TEST tokens' : 'ETH'}`
                       : 'Click to fetch'}

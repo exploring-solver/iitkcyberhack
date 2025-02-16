@@ -4,6 +4,9 @@ const keccak256 = require('keccak256');
 const RelayerStorage = require('./RelayerStorage');
 const AmoyBridgeABI = require('../artifacts/BridgeAmoy.sol/BridgeAmoy.json').abi;
 const SepoliaBridgeABI = require('../artifacts/BridgeSepolia.sol/BridgeSepolia.json').abi;
+const mongoose = require('mongoose');
+const Transaction = require('../models/Transaction');
+const Receipt = require('../models/Receipt');
 
 class BridgeRelayer {
     constructor({ config }) {
@@ -78,6 +81,11 @@ class BridgeRelayer {
         this.isRunning = false;
 
         this.transferStatus = new Map(); // Add this to track transfer status
+
+        // Connect to MongoDB
+        mongoose.connect(config.mongoUri || 'mongodb://localhost:27017/bridge')
+            .then(() => console.log('Connected to MongoDB'))
+            .catch(err => console.error('MongoDB connection error:', err));
     }
 
     async start() {
@@ -511,6 +519,52 @@ class BridgeRelayer {
             throw error;
         }
     }
+
+    // Add this method to save transaction
+    async saveTransaction(transferData, merkleRoot, merkleProof) {
+        try {
+            const transaction = new Transaction({
+                transferId: transferData.transferId,
+                sourceChain: transferData.sourceChain,
+                targetChain: transferData.targetChain,
+                userAddress: transferData.user,
+                receiverAddress: transferData.receiver,
+                amount: transferData.amount.toString(),
+                merkleRoot,
+                merkleProof,
+                nonce: transferData.nonce,
+                timestamp: transferData.timestamp
+            });
+
+            await transaction.save();
+            return transaction;
+        } catch (error) {
+            console.error('Error saving transaction:', error);
+            throw error;
+        }
+    }
+
+    // Add this method to save receipt
+    async saveReceipt(transferId, receipt) {
+        try {
+            const transaction = await Transaction.findOne({ transferId });
+            
+            const txReceipt = new Receipt({
+                transferId,
+                transaction: transaction._id,
+                sourceChainTxHash: receipt.sourceChainTxHash,
+                targetChainTxHash: receipt.targetChainTxHash,
+                gasUsed: receipt.gasUsed?.toString(),
+                effectiveGasPrice: receipt.effectiveGasPrice?.toString()
+            });
+
+            await txReceipt.save();
+            return txReceipt;
+        } catch (error) {
+            console.error('Error saving receipt:', error);
+            throw error;
+        }
+    }
 }
 
 // Example configuration
@@ -532,7 +586,8 @@ const config = {
     retryInterval: 5 * 60 * 1000,
     cleanupInterval: 60 * 60 * 1000,
     retryThreshold: 5 * 60 * 1000,
-    cleanupThreshold: 24 * 60 * 60 * 1000
+    cleanupThreshold: 24 * 60 * 60 * 1000,
+    mongoUri: 'mongodb://localhost:27017/bridge'
 };
 
 

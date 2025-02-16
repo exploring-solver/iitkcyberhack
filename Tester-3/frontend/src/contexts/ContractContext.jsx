@@ -1,14 +1,25 @@
-// network-config.js
 export const NETWORKS = {
     amoy: {
-        chainId: import.meta.env.VITE_AMOY_CHAIN_ID || '80002',
+        chainId: `0x${Number(import.meta.env.VITE_AMOY_CHAIN_ID || '80002').toString(16)}`,
         name: import.meta.env.VITE_AMOY_NETWORK_NAME || 'Amoy Network',
         rpcUrl: import.meta.env.VITE_AMOY_RPC_URL || 'http://localhost:8545',
+        nativeCurrency: {
+            name: 'AMOY',
+            symbol: 'AMOY',
+            decimals: 18
+        },
+        blockExplorer: import.meta.env.VITE_AMOY_EXPLORER_URL || 'http://localhost:4000'
     },
     sepolia: {
-        chainId: import.meta.env.VITE_SEPOLIA_CHAIN_ID || '11155111',
+        chainId: `0x${Number(import.meta.env.VITE_SEPOLIA_CHAIN_ID || '11155111').toString(16)}`,
         name: import.meta.env.VITE_SEPOLIA_NETWORK_NAME || 'Sepolia Network',
         rpcUrl: import.meta.env.VITE_SEPOLIA_RPC_URL || 'http://localhost:8546',
+        nativeCurrency: {
+            name: 'Sepolia ETH',
+            symbol: 'ETH',
+            decimals: 18
+        },
+        blockExplorer: import.meta.env.VITE_SEPOLIA_EXPLORER_URL || 'https://sepolia.etherscan.io'
     }
 };
 
@@ -27,18 +38,16 @@ export const CONTRACT_ADDRESSES = {
     }
 };
 
-// Optional: Add a utility function to check if we're using env vars or defaults
 export const getConfigSource = (networkType, configType) => {
-    const envVar = `${networkType.toUpperCase()}_${configType.toUpperCase()}`;
+    const envVar = `VITE_${networkType.toUpperCase()}_${configType.toUpperCase()}`;
     return import.meta.env[envVar] ? 'environment' : 'default';
 };
 
-// Log configuration sources on initialization
 console.log('Network Configuration Sources:');
 ['amoy', 'sepolia'].forEach(network => {
     console.log(`\n${network.toUpperCase()}:`);
-    console.log(`Chain ID: ${getConfigSource(network, 'chain_id')}`);
-    console.log(`RPC URL: ${getConfigSource(network, 'rpc_url')}`);
-    console.log(`Token Address: ${getConfigSource(network, 'token_address')}`);
-    console.log(`Bridge Address: ${getConfigSource(network, 'bridge_address')}`);
+    console.log(`Chain ID: ${getConfigSource(network, 'CHAIN_ID')}`);
+    console.log(`RPC URL: ${getConfigSource(network, 'RPC_URL')}`);
+    console.log(`Token Address: ${getConfigSource(network, 'TOKEN_ADDRESS')}`);
+    console.log(`Bridge Address: ${getConfigSource(network, 'BRIDGE_ADDRESS')}`);
 });
