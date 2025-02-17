@@ -106,7 +106,7 @@ export const BridgeProvider = ({ children }) => {
                     );
                     
                     const requestId = lockTx.events.LockRequested.returnValues.requestId;
-                    await waitForTransferCompletion(requestId, 'sepolia', 'token');
+                    // await waitForTransferCompletion(requestId, 'sepolia', 'token');
                     
                 } else {
                     // Sepolia to Amoy token transfer
@@ -128,7 +128,7 @@ export const BridgeProvider = ({ children }) => {
                     );
                     
                     const requestId = burnTx.events.ReleaseRequested.returnValues.requestId;
-                    await waitForTransferCompletion(requestId, 'amoy', 'token');
+                    // await waitForTransferCompletion(requestId, 'amoy', 'token');
                 }
             } else if (transferType === 'nft') {
                 if (sourceChain === 'amoy') {
@@ -153,7 +153,7 @@ export const BridgeProvider = ({ children }) => {
                     );
     
                     const requestId = lockTx.events.LockRequested.returnValues.requestId;
-                    await waitForTransferCompletion(requestId, 'sepolia', 'nft');
+                    // await waitForTransferCompletion(requestId, 'sepolia', 'nft');
     
                 } else {
                     // Sepolia to Amoy NFT transfer
@@ -177,7 +177,7 @@ export const BridgeProvider = ({ children }) => {
                     );
     
                     const requestId = burnTx.events.ReleaseRequested.returnValues.requestId;
-                    await waitForTransferCompletion(requestId, 'amoy', 'nft');
+                    // await waitForTransferCompletion(requestId, 'amoy', 'nft');
                 }
             }
     
