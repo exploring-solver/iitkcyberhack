@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+/* eslint-disable no-undef */
+import  { useState } from 'react';
 import { useBlockchain } from '../contexts/Web3Context';
 import { getContract } from "thirdweb";
 import { getBalance } from "thirdweb/extensions/erc20";

@@ -1,0 +1,21 @@
+{
+    "name": "Eno Bridge",
+    "short_name": "Eno",
+    "description": "Cross-chain token and NFT bridge for seamless asset transfers",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#7C3AED",
+    "icons": [
+      {
+        "src": "/icon-192.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "/icon-512.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ]
+  }

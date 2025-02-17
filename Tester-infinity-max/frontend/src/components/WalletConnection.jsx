@@ -1,5 +1,6 @@
-import React from 'react';
-import { useWeb3 } from '../contexts/Web3Context';
+// import React from "react";
+import { Wallet, RefreshCcw, Network } from "lucide-react";
+import { useWeb3 } from "../contexts/Web3Context";
 
 const WalletConnection = () => {
   const {
@@ -9,16 +10,21 @@ const WalletConnection = () => {
     connectWallet,
     disconnectWallet,
     switchChain,
-    fetchBalance
+    fetchBalance,
   } = useWeb3();
 
   const getNetworkName = (chainId) => {
     switch (chainId) {
-      case '0xAA36A7': return 'Sepolia';
-      case '0x13882': return 'Amoy';
-      case '0x7a69': return 'Local Amoy';
-      case '0x7a6a': return 'Local Sepolia';
-      default: return 'Unknown Network';
+      case "0xAA36A7":
+        return "Sepolia";
+      case "0x13882":
+        return "Amoy";
+      case "0x7a69":
+        return "Local Amoy";
+      case "0x7a6a":
+        return "Local Sepolia";
+      default:
+        return "Unknown Network";
     }
   };
 
@@ -29,99 +35,108 @@ const WalletConnection = () => {
   };
 
   return (
-    <div className="p-4 bg-white shadow rounded-lg">
-      <div className="flex flex-col space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col">
-            <h2 className="text-lg font-semibold text-gray-900">Wallet Connection</h2>
-            {account ? (
-              <div className="mt-2 space-y-1">
-                <p className="text-sm text-gray-600">
-                  Connected Account: {`${account.slice(0, 6)}...${account.slice(-4)}`}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Network: {getNetworkName(chainId)}
-                </p>
-                <div className="flex items-center space-x-2">
-                  <p className="text-sm text-gray-600">
-                    Balance: {balance
-                      ? `${parseFloat(balance).toFixed(4)} ${
-                          chainId === '0x13882' ? 'MATIC' :
-                          chainId === '0x7a69' ? 'TEST tokens' :
-                          chainId === '0x7a6a' ? 'Wrapped TEST tokens' : 'ETH'}`
-                      : 'Click to fetch'}
-                  </p>
+    <div className="p-6 bg-white shadow-lg border border-gray-200 rounded-lg">
+      {/* Header Section */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-gray-900">Wallet Connection</h2>
+        <button
+          onClick={account ? disconnectWallet : connectWallet}
+          className={`px-4 py-2 text-sm font-semibold rounded-full transition-all ${
+            account
+              ? "bg-red-500 text-white hover:bg-red-600"
+              : "bg-blue-500 text-white hover:bg-blue-600"
+          }`}
+        >
+          {account ? "Disconnect" : "Connect Wallet"}
+        </button>
+      </div>
 
-                  <button
-                    onClick={handleFetchBalance}
-                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded"
-                  >
-                    🔄 Refresh
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-600">Not connected</p>
-            )}
+      {/* Wallet Info */}
+      {account ? (
+        <div className="space-y-3 text-gray-700 text-sm">
+          <p>
+            <Wallet className="inline w-4 h-4 mr-1 text-gray-500" />
+            Account: <span className="font-medium">{`${account.slice(0, 6)}...${account.slice(-4)}`}</span>
+          </p>
+          <p>
+            <Network className="inline w-4 h-4 mr-1 text-gray-500" />
+            Network: <span className="font-medium">{getNetworkName(chainId)}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <p className="flex items-center">
+              💰 Balance:{" "}
+              {balance ? (
+                <span className="font-medium ml-1">
+                  {parseFloat(balance).toFixed(4)}{" "}
+                  {chainId === "0x13882"
+                    ? "MATIC"
+                    : chainId === "0x7a69"
+                    ? "TEST"
+                    : chainId === "0x7a6a"
+                    ? "Wrapped TEST"
+                    : "ETH"}
+                </span>
+              ) : (
+                <span className="text-gray-500 ml-1">Click to fetch</span>
+              )}
+            </p>
+            <button
+              onClick={handleFetchBalance}
+              className="flex items-center gap-1 text-xs px-2 py-1 border border-gray-300 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all"
+            >
+              <RefreshCcw className="w-3 h-3" /> Refresh
+            </button>
           </div>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-500">Wallet not connected</p>
+      )}
 
+      {/* Network Switch Buttons */}
+      {account && (
+        <div className="flex flex-wrap gap-2 mt-4">
           <button
-            onClick={account ? disconnectWallet : connectWallet}
-            className={`px-4 py-2 rounded-md ${
-              account
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+            onClick={() => switchChain("0xaa36a7")}
+            className={`px-4 py-2 text-xs font-semibold rounded-full transition-all ${
+              chainId === "0xaa36a7"
+                ? "bg-purple-100 text-purple-800 border border-purple-300"
+                : "bg-purple-600 text-white hover:bg-purple-700"
             }`}
           >
-            {account ? 'Disconnect' : 'Connect Wallet'}
+            Switch to Sepolia
+          </button>
+          <button
+            onClick={() => switchChain("0x13882")}
+            className={`px-4 py-2 text-xs font-semibold rounded-full transition-all ${
+              chainId === "0x13882"
+                ? "bg-indigo-100 text-indigo-800 border border-indigo-300"
+                : "bg-indigo-600 text-white hover:bg-indigo-700"
+            }`}
+          >
+            Switch to Amoy
+          </button>
+          <button
+            onClick={() => switchChain("0x7a69")}
+            className={`px-4 py-2 text-xs font-semibold rounded-full transition-all ${
+              chainId === "0x7a69"
+                ? "bg-green-100 text-green-800 border border-green-300"
+                : "bg-green-600 text-white hover:bg-green-700"
+            }`}
+          >
+            Local Amoy (8545)
+          </button>
+          <button
+            onClick={() => switchChain("0x7a6a")}
+            className={`px-4 py-2 text-xs font-semibold rounded-full transition-all ${
+              chainId === "0x7a6a"
+                ? "bg-teal-100 text-teal-800 border border-teal-300"
+                : "bg-teal-600 text-white hover:bg-teal-700"
+            }`}
+          >
+            Local Sepolia (8546)
           </button>
         </div>
-
-        {account && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => switchChain('0xaa36a7')}
-              className={`px-4 py-2 rounded-md ${
-                chainId === '0xaa36a7'
-                  ? 'bg-purple-100 text-purple-800 border border-purple-500'
-                  : 'bg-purple-600 text-white hover:bg-purple-700'
-              }`}
-            >
-              Switch to Sepolia
-            </button>
-            <button
-              onClick={() => switchChain('0x13882')}
-              className={`px-4 py-2 rounded-md ${
-                chainId === '0x13882'
-                  ? 'bg-indigo-100 text-indigo-800 border border-indigo-500'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
-              }`}
-            >
-              Switch to Amoy
-            </button>
-            <button
-              onClick={() => switchChain('0x7a69')}
-              className={`px-4 py-2 rounded-md ${
-                chainId === '0x7a69'
-                  ? 'bg-green-100 text-green-800 border border-green-500'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              Switch to Local Amoy (8545)
-            </button>
-            <button
-              onClick={() => switchChain('0x7a6a')}
-              className={`px-4 py-2 rounded-md ${
-                chainId === '0x7a6a'
-                  ? 'bg-teal-100 text-teal-800 border border-teal-500'
-                  : 'bg-teal-600 text-white hover:bg-teal-700'
-              }`}
-            >
-              Switch to Local Sepolia (8546)
-            </button>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };

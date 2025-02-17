@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+/* eslint-disable no-unused-vars */
+import  { useState } from 'react';
 import { ethers } from 'ethers';
 import { useWeb3 } from '../contexts/Web3Context';
 
@@ -50,59 +51,62 @@ const Transfer = () => {
   };
 
   return (
-    <div className="p-4 bg-white shadow rounded-lg">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Transfer Assets</h2>
+    <div className="p-6 bg-white shadow-lg border border-gray-200 rounded-lg">
+      {/* Header */}
+      <h2 className="text-xl font-bold text-gray-900 mb-5">Transfer Assets</h2>
 
-      <div className="mb-4">
-        <div className="flex space-x-4">
-          <button
-            onClick={() => setTransferType('token')}
-            className={`px-4 py-2 rounded-md ${
-              transferType === 'token'
-                ? 'bg-blue-100 text-blue-800'
-                : 'bg-gray-100 hover:bg-gray-200'
-            }`}
-          >
-            Transfer Tokens
-          </button>
-          <button
-            onClick={() => setTransferType('nft')}
-            className={`px-4 py-2 rounded-md ${
-              transferType === 'nft'
-                ? 'bg-blue-100 text-blue-800'
-                : 'bg-gray-100 hover:bg-gray-200'
-            }`}
-          >
-            Transfer NFT
-          </button>
-        </div>
+      {/* Transfer Type Toggle */}
+      <div className="mb-4 flex gap-3">
+        <button
+          onClick={() => setTransferType('token')}
+          className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+            transferType === 'token'
+              ? 'bg-blue-600 text-white shadow'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Transfer Tokens
+        </button>
+        <button
+          onClick={() => setTransferType('nft')}
+          className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+            transferType === 'nft'
+              ? 'bg-blue-600 text-white shadow'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Transfer NFT
+        </button>
       </div>
 
-      <form onSubmit={handleTransfer} className="space-y-4">
+      {/* Form */}
+      <form onSubmit={handleTransfer} className="space-y-5">
+        {/* Recipient Address */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-semibold text-gray-800">
             Recipient Address
           </label>
           <input
             type="text"
             value={recipientAddress}
             onChange={(e) => setRecipientAddress(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
             placeholder="0x..."
             required
           />
         </div>
 
+        {/* Amount or Token ID */}
         {transferType === 'token' ? (
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Amount
+            <label className="block text-sm font-semibold text-gray-800">
+              Token Amount
             </label>
             <input
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
               placeholder="0.0"
               step="0.000001"
               min="0"
@@ -111,14 +115,14 @@ const Transfer = () => {
           </div>
         ) : (
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Token ID
+            <label className="block text-sm font-semibold text-gray-800">
+              NFT Token ID
             </label>
             <input
               type="number"
               value={tokenId}
               onChange={(e) => setTokenId(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
               placeholder="1"
               min="1"
               step="1"
@@ -127,23 +131,30 @@ const Transfer = () => {
           </div>
         )}
 
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading || !account}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+          className={`w-full px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+            loading || !account
+              ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          }`}
         >
           {loading ? 'Processing...' : 'Transfer'}
         </button>
       </form>
 
+      {/* Error Message */}
       {error && (
-        <div className="mt-4 p-2 bg-red-100 text-red-800 rounded">
+        <div className="mt-4 p-2 text-sm text-red-700 bg-red-100 border border-red-300 rounded-lg">
           {error}
         </div>
       )}
 
+      {/* Success Message */}
       {success && (
-        <div className="mt-4 p-2 bg-green-100 text-green-800 rounded">
+        <div className="mt-4 p-2 text-sm text-green-700 bg-green-100 border border-green-300 rounded-lg">
           {success}
         </div>
       )}
