@@ -30,7 +30,7 @@ module.exports = {
       maxFeePerGas: 20000000000, // 20 Gwei (set higher than the current base fee)
       maxPriorityFeePerGas: 2000000000, // 2 Gwei (tip for the miner)
       networkCheckTimeout: 2000000 // Increase the timeout to a higher value (1,000,000 ms)
-    }    
+    }
   },
 
   mocha: {
